@@ -54,7 +54,7 @@ int main(int argc, char **argv)
      
  
     if(argc <= 1 || argc > 3 ){
-        printf("Error: Fallo en el numero de argumentos.\nEs obligatorio introducir un primer argumento y opcional un segundo argumento. Formato:\n int N: numero de bytes de cada paquete mostrados.\n traza.pcap: traza a analizar.\n");
+        printf("Error: Fallo en el numero de argumentos.\nEs obligatorio introducir un primer argumento y opcional un segundo argumento. Formato:\nint N: numero de bytes de cada paquete mostrados.\n traza.pcap: traza a analizar.\n");
 		return ERROR;    
 	}
  
