@@ -74,14 +74,14 @@ int main(int argc, char **argv){
 
 	nbytes = atoi(argv[1]);
 	if(nbytes < 0){
-		printf("El numero de bytes a capturar debe ser positivo");
+		printf("El numero de bytes a capturar debe ser positivo.\n");
 		return ERROR;
 	}
 	if(argc == 2){ /* Se pasa solo el numero de bytes a mostrar de cada paquete. Captura en vivo */
 
         //OJO!!!!!!!!!! pongo wlo1 porque en la resi estoy con wifi y no me va la mv. Hay que cmabiarlo a eth0
         //Apertura de interface
-		descr = pcap_open_live("wlo1",ETH_FRAME_MAX,0,100, errbuf);
+		descr = pcap_open_live("eth0",ETH_FRAME_MAX,0,100, errbuf);
 		if (!descr){
 		    printf("Error: pcap_open_live(): %s, %s %d.\n",errbuf,__FILE__,__LINE__);
 		    exit(ERROR);
