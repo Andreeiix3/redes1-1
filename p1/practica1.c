@@ -29,11 +29,7 @@ practica1.c
 #include <linux/tcp.h>
 #include <signal.h>
 #include <time.h>
-#define OK 0
-#define ERROR 1
-
-#define ETH_FRAME_MAX 2048  // Tamanio maximo trama ethernet
-#define SECONDS_PER_DAY 86400;
+#include "practica1.h"
 
 pcap_t *descr= NULL, *descr2=NULL;
 pcap_dumper_t *pdumper = NULL;
