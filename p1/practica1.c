@@ -75,7 +75,6 @@ int main(int argc, char **argv){
 	}
 	if(argc == 2){ /* Se pasa solo el numero de bytes a mostrar de cada paquete. Captura en vivo */
 
-        //OJO!!!!!!!!!! pongo wlo1 porque en la resi estoy con wifi y no me va la mv. Hay que cmabiarlo a eth0
         //Apertura de interface
 		descr = pcap_open_live("eth0",ETH_FRAME_MAX,0,100, errbuf);
 		if (!descr){
@@ -129,11 +128,12 @@ int main(int argc, char **argv){
         }
         else if(retorno==-2){
 			printf("Se han leido todos los paquetes disponibles\n");
+            printf("Se han leido %d paquetes\n", counter);
             break;
         }
         //En otro caso
         counter++;
-        printf("Nuevo paquete capturado a las %s",ctime((const time_t*)&(cabecera->ts.tv_sec)));
+        printf("Nuevo paquete capturado. Instante de captura: %s",ctime((const time_t*)&(cabecera->ts.tv_sec)));
         printf("Contenido:\n");
         if(nbytes < cabecera->caplen){
             aux = nbytes;

@@ -1,0 +1,15 @@
+Redes de Comunicaciones I
+Práctica I
+Grupo 1301
+Autores: Emilio Cuesta y Pablo Alejo Polania
+Pareja: 6
+
+Comentarios:
+
+1)practica1.pdf: En este archivo se incluyen descripciones de los ejercicios de captura de trafico. ADEMÁS, en la ultima página se muestran comentadas las capturas solicitadas en el ejercicio de codificación.
+
+2)captures/*.pcap: En la carpeta captures se incluyen varios archivos. Esto se debe a que durante la realizacion de los ejercicios se trabajó con distintas trazas. De esta manera, la traza del ejercicio dos es "practica1.2.pcap" y la del 5, "practica1.5.pcap". También se incluye la traza después de filtrar en el ejercicio 2 ("practica1.2.filter.pcap"). En esta carpeta también está presente el fichero "practica1.pcap" que era el que se solicitaba en el enunciado.
+
+3)Se añade también el fichero "prueba.pcap" en el mismo directorio que el programa para facilitar la ejecución en el caso en el que se pasan dos argumentos. 
+
+4)resultado/*.png: En esta carpeta están las capturas que se solicitan, aquellas en las que se compara el contenido de un paquete mostrado por pantalla y en el documento pcap generado (Todo ello en el caso de captura en vivo). Las dos imágenes están en formato PNG.
