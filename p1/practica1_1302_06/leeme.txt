@@ -12,4 +12,4 @@ Comentarios:
 
 3)Se añade también el fichero "prueba.pcap" en el mismo directorio que el programa para facilitar la ejecución en el caso en el que se pasan dos argumentos. 
 
-4)resultado/*.png: En esta carpeta están las capturas que se solicitan, aquellas en las que se compara el contenido de un paquete mostrado por pantalla y en el documento pcap generado (Todo ello en el caso de captura en vivo). Las dos imágenes están en formato PNG.
+4)resultado/*.png: En esta carpeta está la captura que se solicita, aquella en la que se compara el contenido de un paquete mostrado por pantalla y en el documento pcap generado (Todo ello en el caso de captura en vivo). La imagen está en formato PNG.
