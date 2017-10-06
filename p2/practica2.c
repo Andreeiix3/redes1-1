@@ -30,7 +30,7 @@
 #define ETH_FRAME_MIN 60     /* Tamanio minimo la trama ethernet (sin CRC) */
 #define ETH_DATA_MAX  (ETH_FRAME_MAX - ETH_HLEN) /* Tamano maximo y minimo de los datos de una trama ethernet*/
 #define ETH_DATA_MIN  (ETH_FRAME_MIN - ETH_HLEN)
-#define IP_ALEN 4			/* Tamanio de la direccion IP					*/
+#define IP_ALEN 4			 /* Tamanio de la direccion IP					*/
 #define OK 0
 #define ERROR 1
 #define PACK_READ 1
@@ -223,7 +223,11 @@ void analizar_paquete(const struct pcap_pkthdr *hdr, const uint8_t *pack)
 {
 	printf("Nuevo paquete capturado el %s\n", ctime((const time_t *) & (hdr->ts.tv_sec)));
 
+	
+	/*Nivel 2*/
 	int i = 0;
+
+	/*Destino*/
 	printf("Direccion ETH destino= ");
 	printf("%02X", pack[0]);
 
@@ -233,7 +237,8 @@ void analizar_paquete(const struct pcap_pkthdr *hdr, const uint8_t *pack)
 
 	printf("\n");
 	pack += ETH_ALEN;
-
+	
+	/*Origen*/
 	printf("Direccion ETH origen = ");
 	printf("%02X", pack[0]);
 
@@ -242,11 +247,26 @@ void analizar_paquete(const struct pcap_pkthdr *hdr, const uint8_t *pack)
 	}
 
 	printf("\n");
+	
+	pack+=ETH_ALEN;
+	printf("Tipo de protocolo del siguiente nivel = ");
+	
 
-	//pack+=ETH_ALEN;
-	// .....
-	// .....
-	// .....
+	for (i = 0; i < ETH_TLEN; i++) {
+		printf("%02X", pack[i]);		
+	}
+	
+	if(pack[0] != 0x00 || pack[1] != 0x08){
+		printf("El siguiente protocolo no es el esperado, no se imprimirá informacion correspondiente a los siguientes niveles");		
+		return;
+	}
 
+	/*Nivel 3*/
+	
+ 	pack += ETH_TLEN; 
+	printf("Version:");
+
+	
+	
 	printf("\n\n");
 }
