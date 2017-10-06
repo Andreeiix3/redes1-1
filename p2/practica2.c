@@ -41,6 +41,7 @@ void analizar_paquete(const struct pcap_pkthdr *hdr, const uint8_t *pack);
 
 void handleSignal(int nsignal);
 
+*/Variables globales*/
 pcap_t *descr = NULL;
 uint64_t contador = 0;
 uint8_t ipsrc_filter[IP_ALEN] = {NO_FILTER};
@@ -48,8 +49,8 @@ uint8_t ipdst_filter[IP_ALEN] = {NO_FILTER};
 uint16_t sport_filter= NO_FILTER;
 uint16_t dport_filter = NO_FILTER;
 
-void handleSignal(int nsignal)
-{
+void handleSignal(int nsignal){
+
 	(void) nsignal; // indicamos al compilador que no nos importa que nsignal no se utilice
 
 	printf("Control C pulsado (%"PRIu64" paquetes leidos)\n", contador);
