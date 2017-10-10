@@ -228,7 +228,8 @@ void analizar_paquete(const struct pcap_pkthdr *hdr, const uint8_t *pack)
 	int i = 0;
 
 	/*Destino*/
-	printf("Direccion ETH destino= ");
+	printf("Direccion ETH destino = ");
+	
 	printf("%02X", pack[0]);
 
 	for (i = 1; i < ETH_ALEN; i++) {
@@ -240,8 +241,11 @@ void analizar_paquete(const struct pcap_pkthdr *hdr, const uint8_t *pack)
 	
 	/*Origen*/
 	printf("Direccion ETH origen = ");
+	
+	/*Impresion del primer byte de la direccion*/
 	printf("%02X", pack[0]);
 
+	/*Impresion del resto de bytes de la direccion*/
 	for (i = 1; i < ETH_ALEN; i++) {
 		printf(":%02X", pack[i]);
 	}
@@ -249,24 +253,34 @@ void analizar_paquete(const struct pcap_pkthdr *hdr, const uint8_t *pack)
 	printf("\n");
 	
 	pack+=ETH_ALEN;
-	printf("Tipo de protocolo del siguiente nivel = ");
-	
 
+
+	printf("Tipo de protocolo del siguiente nivel = ");
 	for (i = 0; i < ETH_TLEN; i++) {
 		printf("%02X", pack[i]);		
 	}
 	
+	/*Esto de aqui abajo era una guarrada*/
 	if(pack[0] != 0x00 || pack[1] != 0x08){
+		/*Esto indica que el siguiente protocolo no es IPv4*/
 		printf("El siguiente protocolo no es el esperado, no se imprimirá informacion correspondiente a los siguientes niveles");		
 		return;
 	}
+	printf("\n")
+	pack += ETH_TLEN; 
 
 	/*Nivel 3*/
 	
- 	pack += ETH_TLEN; 
-	printf("Version:");
+	printf("Version IP: %u\n", pack[0]>>4);
+	printf("Longitud de cabecera: %u", (pack[0]&0x0F);
+	printf("Longitud total: %u%u", pack[2], pack[3]);
+	printf("Posicion/Desplazamiento: ");
+	printf("Tiempo de vida: %u", pack[8]);
+	printf("Protocolo:%u", pack[9]);
+	/*hay que almacenar en algun lado que tipo de protocolo es*/
+	pack += 
+	printf("Direccion IP de origen:");
+	printf("Direccion IP de destino:");
 
-	
-	
 	printf("\n\n");
 }
