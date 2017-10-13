@@ -114,7 +114,7 @@ int main(int argc, char **argv)
 			//exit(ERROR);
 			
 			if ( (descr = pcap_open_live(optarg, SNAPLENGTH, 0, 100, errbuf)) == NULL){
-				printf("Error: ??(): Interface: %s, %s %s %d.\n", optarg,errbuf,__FILE__,__LINE__);
+				printf("Error: pcap_open_live(): Interface: %s, %s %s %d.\n", optarg,errbuf,__FILE__,__LINE__);
 				exit(ERROR);
 			}
 			break;
