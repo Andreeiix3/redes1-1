@@ -39,6 +39,7 @@
 #define NO_FILTER 0
 #define TCP_CODE 0x06
 #define UDP_CODE 0x11
+#define SNAPLENGTH 2048
 
 
 void analizar_paquete(const struct pcap_pkthdr *hdr, const uint8_t *pack);
@@ -110,12 +111,12 @@ int main(int argc, char **argv)
 				exit(ERROR);
 			}
 			printf("Descomente el código para leer y abrir de una interfaz\n");
-			exit(ERROR);
+			//exit(ERROR);
 			
-			//if ( (descr = ??(optarg, ??, ??, ??, errbuf)) == NULL){
-			//	printf("Error: ??(): Interface: %s, %s %s %d.\n", optarg,errbuf,__FILE__,__LINE__);
-			//	exit(ERROR);
-			//}
+			if ( (descr = pcap_open_live(optarg, SNAPLENGTH, 0, 100, errbuf)) == NULL){
+				printf("Error: ??(): Interface: %s, %s %s %d.\n", optarg,errbuf,__FILE__,__LINE__);
+				exit(ERROR);
+			}
 			break;
 
 		case 'f' :
@@ -235,7 +236,7 @@ void analizar_paquete(const struct pcap_pkthdr *hdr, const uint8_t *pack)
 	uint8_t tcp_ack;
 
 
-
+	printf("PAQUETE NUMERO %ld\n", contador);
 	printf("Nuevo paquete capturado el %s\n", ctime((const time_t *) & (hdr->ts.tv_sec)));
 
 	
@@ -292,13 +293,13 @@ void analizar_paquete(const struct pcap_pkthdr *hdr, const uint8_t *pack)
 	ip_ihl = (pack[0]&0x0F)*4;
 	printf("Longitud de cabecera: %u bytes\n", ip_ihl);
 
-	pack += 1;
+	pack += 2;
 
 	printf("Longitud total: %u\n", ntohs(*(uint16_t *) pack));
 
-	pack += 2;
+	pack += 4;
 
-	ip_offset = ntohs((*(uint16_t *) pack)&0x0111);
+	ip_offset = ntohs((*(uint16_t *) pack))&0x1FFF;
 	printf("Posicion/Desplazamiento: %u\n", ip_offset);
 
 	
@@ -306,10 +307,11 @@ void analizar_paquete(const struct pcap_pkthdr *hdr, const uint8_t *pack)
 	pack += 2;
 
 	printf("Tiempo de vida: %u\n", pack[0]);
-	printf("Protocolo:%u\n", pack[1]);
 	ip_protocol = pack[1];
+	printf("Protocolo:%u\n", ip_protocol);
+	
 
-	pack += 2;
+	pack += 4;
 	
 	printf("Direccion IP de origen: %u", pack[0]);
 
