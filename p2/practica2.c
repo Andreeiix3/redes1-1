@@ -37,11 +37,15 @@
 #define PACK_ERR -1
 #define TRACE_END -2
 #define NO_FILTER 0
+#define TCP_CODE 0x06
+#define UDP_CODE 0x11
+
+
 void analizar_paquete(const struct pcap_pkthdr *hdr, const uint8_t *pack);
 
 void handleSignal(int nsignal);
 
-*/Variables globales*/
+/*Variables globales*/
 pcap_t *descr = NULL;
 uint64_t contador = 0;
 uint8_t ipsrc_filter[IP_ALEN] = {NO_FILTER};
@@ -121,12 +125,12 @@ int main(int argc, char **argv)
 				exit(ERROR);
 			}
 			printf("Descomente el código para leer y abrir una traza pcap\n");
-			exit(ERROR);
+			//exit(ERROR);
 
-			//if ((descr = pcap_open_offline(optarg, errbuf)) == NULL) {
-			//	printf("Error: pcap_open_offline(): File: %s, %s %s %d.\n", optarg, errbuf, __FILE__, __LINE__);
-			//	exit(ERROR);
-			//}
+			if ((descr = pcap_open_offline(optarg, errbuf)) == NULL) {
+				printf("Error: pcap_open_offline(): File: %s, %s %s %d.\n", optarg, errbuf, __FILE__, __LINE__);
+				exit(ERROR);
+			}
 
 			break;
 
@@ -221,6 +225,17 @@ int main(int argc, char **argv)
 
 void analizar_paquete(const struct pcap_pkthdr *hdr, const uint8_t *pack)
 {
+	
+	uint8_t ip_protocol;
+	uint8_t ip_ihl;
+	uint16_t ip_offset;
+	const uint8_t * aux_pointer;
+	uint16_t lvl4_ports;
+	uint8_t tcp_syn;
+	uint8_t tcp_ack;
+
+
+
 	printf("Nuevo paquete capturado el %s\n", ctime((const time_t *) & (hdr->ts.tv_sec)));
 
 	
@@ -260,27 +275,117 @@ void analizar_paquete(const struct pcap_pkthdr *hdr, const uint8_t *pack)
 		printf("%02X", pack[i]);		
 	}
 	
-	/*Esto de aqui abajo era una guarrada*/
-	if(pack[0] != 0x00 || pack[1] != 0x08){
+	/*Esto de aqui abajo era una guarrada, ip = 0x0800*/
+	/*Hay que comprobar si es asi o al reves (big endian o little endian)*/
+	if(pack[0] != 0x08|| pack[1] != 0x00 ){
 		/*Esto indica que el siguiente protocolo no es IPv4*/
-		printf("El siguiente protocolo no es el esperado, no se imprimirá informacion correspondiente a los siguientes niveles");		
+		printf("El siguiente protocolo no es el esperado, no se imprimirá informacion correspondiente a los siguientes niveles\n\n");		
 		return;
 	}
-	printf("\n")
+	printf("\n");
 	pack += ETH_TLEN; 
 
 	/*Nivel 3*/
-	
-	printf("Version IP: %u\n", pack[0]>>4);
-	printf("Longitud de cabecera: %u", (pack[0]&0x0F);
-	printf("Longitud total: %u%u", pack[2], pack[3]);
-	printf("Posicion/Desplazamiento: ");
-	printf("Tiempo de vida: %u", pack[8]);
-	printf("Protocolo:%u", pack[9]);
-	/*hay que almacenar en algun lado que tipo de protocolo es*/
-	pack += 
-	printf("Direccion IP de origen:");
-	printf("Direccion IP de destino:");
+	aux_pointer = pack;
 
+	printf("Version IP: %u\n", pack[0]>>4);
+	ip_ihl = (pack[0]&0x0F)*4;
+	printf("Longitud de cabecera: %u bytes\n", ip_ihl);
+
+	pack += 1;
+
+	printf("Longitud total: %u\n", ntohs(*(uint16_t *) pack));
+
+	pack += 2;
+
+	ip_offset = ntohs((*(uint16_t *) pack)&0x0111);
+	printf("Posicion/Desplazamiento: %u\n", ip_offset);
+
+	
+
+	pack += 2;
+
+	printf("Tiempo de vida: %u\n", pack[0]);
+	printf("Protocolo:%u\n", pack[1]);
+	ip_protocol = pack[1];
+
+	pack += 2;
+	
+	printf("Direccion IP de origen: %u", pack[0]);
+
+	/*Impresion del resto de bytes de la direccion*/
+	for (i = 1; i < IP_ALEN; i++) {
+		printf(".%u", pack[i]);
+	}
+	
+	printf("\n");
+
+	pack += 4;
+
+	printf("Direccion IP de destino: %u", pack[0]);
+
+	/*Impresion del resto de bytes de la direccion*/
+	for (i = 1; i < IP_ALEN; i++) {
+		printf(".%u", pack[i]);
+	}
+	
+	printf("\n");
+
+	if(ip_offset != 0){
+		printf("El paquete IP leído no es el primer fragmento, no contiene cabecera de nivel 4\n\n");
+		return;
+	}
+
+
+
+	/*IHL te dice el numero de palabras de 32 bits que tiene el nivel ip. Hay que multiplicar por 4
+	para convertir a bytes (pack direcciona byte a byte)*/
+	pack = aux_pointer + ip_ihl;
+
+	/*nivel 4*/
+
+	if(ip_protocol == TCP_CODE){
+
+		printf("TCP\n");
+		
+		lvl4_ports = ntohs(*(uint16_t *) pack);
+		printf("Puerto de origen: %u \n", lvl4_ports);
+		
+		pack += 2;
+
+		lvl4_ports = ntohs(*(uint16_t *) pack);
+		printf("Puerto de destino: %u\n", lvl4_ports);
+
+		pack += 11;
+
+		tcp_ack = (pack[0]&0x10)>>4;
+		tcp_syn = (pack[0]&0x02)>>1;
+
+		printf("Bandera SYN: %u\n", tcp_syn);
+		printf("Bandera ACK: %u\n", tcp_ack);
+
+	}
+	else if(ip_protocol == UDP_CODE){
+
+		printf("UDP\n");
+		
+		lvl4_ports = ntohs(*(uint16_t *) pack);
+		printf("Puerto de origen: %u \n", lvl4_ports);
+		
+		pack += 2;
+
+		lvl4_ports = ntohs(*(uint16_t *) pack);
+		printf("Puerto de destino: %u\n", lvl4_ports);
+
+		pack += 2;
+
+		printf("Longitud: %u\n", ntohs(*(uint16_t *) pack));
+	}
+	else{
+		printf("El siguiente protocolo no es el esperado. No se imprimira informacion relativa a los siguientes niveles\n\n");
+		return;
+	}
+
+	printf("Final de análisis de paquete\n");
 	printf("\n\n");
 }
