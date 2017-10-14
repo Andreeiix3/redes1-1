@@ -72,6 +72,9 @@ int main(int argc, char **argv)
 	char entrada[256];
 	int long_index = 0, retorno = 0;
 	char opt;
+	char * token;
+	int i;
+
 	
 	(void) errbuf; //indicamos al compilador que no nos importa que errbuf no se utilice. Esta linea debe ser eliminada en la entrega final.
 
@@ -140,6 +143,18 @@ int main(int argc, char **argv)
 				printf("Error ipo_filtro. Ejecucion: %s /ruta/captura_pcap [-ipo IPO] [-ipd IPD] [-po PO] [-pd PD]: %d\n", argv[0], argc);
 				exit(ERROR);
 			}
+			printf("Opción -ipo con valor: '%s'\n", optarg);
+			token = strtok(optarg, ".");
+			ipsrc_filter[0] = (uint8_t) atoi(token);
+			i = 0;
+			while(token != NULL){
+				
+				ipsrc_filter[i] = (uint8_t) atoi(token);
+				token = strtok(NULL, ".");
+				i++;
+			}
+			
+
 
 			break;
 
@@ -147,6 +162,16 @@ int main(int argc, char **argv)
 			if (sscanf(optarg, "%"SCNu8".%"SCNu8".%"SCNu8".%"SCNu8"", &(ipdst_filter[0]), &(ipdst_filter[1]), &(ipdst_filter[2]), &(ipdst_filter[3])) != IP_ALEN) {
 				printf("Error ipd_filtro. Ejecucion: %s /ruta/captura_pcap [-ipo IPO] [-ipd IPD] [-po PO] [-pd PD]: %d\n", argv[0], argc);
 				exit(ERROR);
+			}
+			printf("Opción -ipd con valor: '%s'\n", optarg);
+			token = strtok(optarg, ".");
+			ipdst_filter[0] = (uint8_t) atoi(token);
+			i = 0;
+			while(token != NULL){
+				
+				ipdst_filter[i] = (uint8_t) atoi(token);
+				token = strtok(NULL, ".");
+				i++;
 			}
 
 			break;
@@ -164,7 +189,6 @@ int main(int argc, char **argv)
 				printf("Error pd_filtro. Ejecucion: %s /ruta/captura_pcap [-ipo IPO] [-ipd IPD] [-po PO] [-pd PD]: %d\n", argv[0], argc);
 				exit(ERROR);
 			}
-
 			break;
 
 		case '5' :
@@ -275,6 +299,8 @@ void analizar_paquete(const struct pcap_pkthdr *hdr, const uint8_t *pack)
 	for (i = 0; i < ETH_TLEN; i++) {
 		printf("%02X", pack[i]);		
 	}
+
+	printf("\n");
 	
 	/*Esto de aqui abajo era una guarrada, ip = 0x0800*/
 	/*Hay que comprobar si es asi o al reves (big endian o little endian)*/
@@ -321,6 +347,14 @@ void analizar_paquete(const struct pcap_pkthdr *hdr, const uint8_t *pack)
 	}
 	
 	printf("\n");
+	/* Filtrado de la dirección origen de IP */
+	if(ipsrc_filter[0] != 0 || ipsrc_filter[1] != 0 || ipsrc_filter[2] != 0 || ipsrc_filter[3] != 0){
+		if(ipsrc_filter[0] != pack[0] || ipsrc_filter[1] != pack[1] || ipsrc_filter[2] != pack[2] || ipsrc_filter[3] != pack[3]){
+			printf("La dirección origen de IP de este paquete NO coincide con la del filtro: ");
+			printf("%"PRIu8".%"PRIu8".%"PRIu8".%"PRIu8"\n\n", ipsrc_filter[0], ipsrc_filter[1], ipsrc_filter[2], ipsrc_filter[3]);
+			return;
+		}
+	}
 
 	pack += 4;
 
@@ -332,11 +366,19 @@ void analizar_paquete(const struct pcap_pkthdr *hdr, const uint8_t *pack)
 	}
 	
 	printf("\n");
+	/* Filtrado de la dirección destino de IP */
+	if(ipdst_filter[0] != 0 || ipdst_filter[1] != 0 || ipdst_filter[2] != 0 || ipdst_filter[3] != 0){
+		if(ipdst_filter[0] != pack[0] || ipdst_filter[1] != pack[1] || ipdst_filter[2] != pack[2] || ipdst_filter[3] != pack[3]){
+			printf("La dirección destino de IP de este paquete NO coincide con la del filtro: ");
+			printf("%"PRIu8".%"PRIu8".%"PRIu8".%"PRIu8"\n\n", ipdst_filter[0], ipdst_filter[1], ipdst_filter[2], ipdst_filter[3]);
+			return;
+		}
+	}
 
 	if(ip_offset != 0){
 		printf("El paquete IP leído no es el primer fragmento, no contiene cabecera de nivel 4\n\n");
 		return;
-	}
+	} 
 
 
 
@@ -352,12 +394,25 @@ void analizar_paquete(const struct pcap_pkthdr *hdr, const uint8_t *pack)
 		
 		lvl4_ports = ntohs(*(uint16_t *) pack);
 		printf("Puerto de origen: %u \n", lvl4_ports);
-		
+		/* Filtrado del puerto origen */
+		if(sport_filter != 0){
+			if(sport_filter != lvl4_ports){
+				printf("El puerto de origen de TCP de este paquete NO coincide con el del filtro: %u\n\n", sport_filter);
+				return;
+			}
+		}
+
 		pack += 2;
 
 		lvl4_ports = ntohs(*(uint16_t *) pack);
 		printf("Puerto de destino: %u\n", lvl4_ports);
-
+		/* Filtrado del puerto destino */
+		if(dport_filter != 0){
+			if(dport_filter != lvl4_ports){
+				printf("El puerto de origen de TCP de este paquete NO coincide con el del filtro: %u\n\n", dport_filter);
+				return;
+			}
+		}
 		pack += 11;
 
 		tcp_ack = (pack[0]&0x10)>>4;
@@ -373,12 +428,24 @@ void analizar_paquete(const struct pcap_pkthdr *hdr, const uint8_t *pack)
 		
 		lvl4_ports = ntohs(*(uint16_t *) pack);
 		printf("Puerto de origen: %u \n", lvl4_ports);
-		
+		/* Filtrado del puerto origen */
+		if(sport_filter != 0){
+			if(sport_filter != lvl4_ports){
+				printf("El puerto de origen de UDP de este paquete no coincide con el del filtro: %u\n\n", sport_filter);
+				return;
+			}
+		}
 		pack += 2;
 
 		lvl4_ports = ntohs(*(uint16_t *) pack);
 		printf("Puerto de destino: %u\n", lvl4_ports);
-
+		/* Filtrado del puerto destino */
+		if(dport_filter != 0){
+			if(dport_filter != lvl4_ports){
+				printf("El puerto de origen de UDP de este paquete no coincide con el del filtro: %u\n\n", dport_filter);
+				return;
+			}
+		}
 		pack += 2;
 
 		printf("Longitud: %u\n", ntohs(*(uint16_t *) pack));
