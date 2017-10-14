@@ -1,11 +1,13 @@
 /***************************************************************************
  practica2.c
- Muestra las direciones Ethernet de la traza que se pasa como primer parametro.
- Debe complatarse con mas campos de niveles 2, 3, y 4 tal como se pida en el enunciado.
- Debe tener capacidad de dejar de analizar paquetes de acuerdo a un filtro.
+ Muestra una serie de campos (indicados en enunciado) de unas trazas pasadas como argumento.
+ Estos campos pertenecen a las cabeceras Ethernet-IP-UDP/TCP
+
+ Tambien deja de analizar paquetes de acuerdo a varios posibles filtros.
 
  Compila: gcc -Wall -o practica2 practica2.c -lpcap, make
- Autor: Jose Luis Garcia Dorado, Jorge E. Lopez de Vergara Mendez, Rafael Leira
+ Autores originales: Jose Luis Garcia Dorado, Jorge E. Lopez de Vergara Mendez, Rafael Leira
+ Codigo modificado por: Emilio Cuesta Fernandez, Pablo Alejo Polania Bernardez
  2017 EPS-UAM
 ***************************************************************************/
 
@@ -21,30 +23,8 @@
 #include <time.h>
 #include <getopt.h>
 #include <inttypes.h>
+#include "practica2.h"
 
-/*Definicion de constantes *************************************************/
-#define ETH_ALEN      6      /* Tamanio de la direccion ethernet           */
-#define ETH_HLEN      14     /* Tamanio de la cabecera ethernet            */
-#define ETH_TLEN      2      /* Tamanio del campo tipo ethernet            */
-#define ETH_FRAME_MAX 1514   /* Tamanio maximo la trama ethernet (sin CRC) */
-#define ETH_FRAME_MIN 60     /* Tamanio minimo la trama ethernet (sin CRC) */
-#define ETH_DATA_MAX  (ETH_FRAME_MAX - ETH_HLEN) /* Tamano maximo y minimo de los datos de una trama ethernet*/
-#define ETH_DATA_MIN  (ETH_FRAME_MIN - ETH_HLEN)
-#define IP_ALEN 4			 /* Tamanio de la direccion IP					*/
-#define OK 0
-#define ERROR 1
-#define PACK_READ 1
-#define PACK_ERR -1
-#define TRACE_END -2
-#define NO_FILTER 0
-#define TCP_CODE 0x06
-#define UDP_CODE 0x11
-#define SNAPLENGTH 2048
-
-
-void analizar_paquete(const struct pcap_pkthdr *hdr, const uint8_t *pack);
-
-void handleSignal(int nsignal);
 
 /*Variables globales*/
 pcap_t *descr = NULL;
@@ -113,8 +93,6 @@ int main(int argc, char **argv)
 				pcap_close(descr);
 				exit(ERROR);
 			}
-			printf("Descomente el código para leer y abrir de una interfaz\n");
-			//exit(ERROR);
 			
 			if ( (descr = pcap_open_live(optarg, SNAPLENGTH, 0, 100, errbuf)) == NULL){
 				printf("Error: pcap_open_live(): Interface: %s, %s %s %d.\n", optarg,errbuf,__FILE__,__LINE__);
@@ -128,8 +106,6 @@ int main(int argc, char **argv)
 				pcap_close(descr);
 				exit(ERROR);
 			}
-			printf("Descomente el código para leer y abrir una traza pcap\n");
-			//exit(ERROR);
 
 			if ((descr = pcap_open_offline(optarg, errbuf)) == NULL) {
 				printf("Error: pcap_open_offline(): File: %s, %s %s %d.\n", optarg, errbuf, __FILE__, __LINE__);
@@ -210,11 +186,13 @@ int main(int argc, char **argv)
 	}
 
 	//Simple comprobacion de la correcion de la lectura de parametros
-	printf("Filtro:");
-	//if(ipsrc_filter[0]!=0)
-	printf("ipsrc_filter:%"PRIu8".%"PRIu8".%"PRIu8".%"PRIu8"\t", ipsrc_filter[0], ipsrc_filter[1], ipsrc_filter[2], ipsrc_filter[3]);
-	//if(ipdst_filter[0]!=0)
-	printf("ipdst_filter:%"PRIu8".%"PRIu8".%"PRIu8".%"PRIu8"\t", ipdst_filter[0], ipdst_filter[1], ipdst_filter[2], ipdst_filter[3]);
+	printf("Filtro:\n");
+	if(ipsrc_filter[0]!=0){
+		printf("ipsrc_filter:%"PRIu8".%"PRIu8".%"PRIu8".%"PRIu8"\t", ipsrc_filter[0], ipsrc_filter[1], ipsrc_filter[2], ipsrc_filter[3]);
+	}
+	if(ipdst_filter[0]!=0){
+		printf("ipdst_filter:%"PRIu8".%"PRIu8".%"PRIu8".%"PRIu8"\t", ipdst_filter[0], ipdst_filter[1], ipdst_filter[2], ipdst_filter[3]);
+	}
 
 	if (sport_filter!= NO_FILTER) {
 		printf("po_filtro=%"PRIu16"\t", sport_filter);
@@ -241,7 +219,7 @@ int main(int argc, char **argv)
 		}
 	} while (retorno != TRACE_END);
 
-	printf("Se procesaron %"PRIu64" paquetes.\n\n", contador);
+	printf("\nSe procesaron %"PRIu64" paquetes.\n\n", contador);
 	pcap_close(descr);
 	return OK;
 }
@@ -250,7 +228,7 @@ int main(int argc, char **argv)
 
 void analizar_paquete(const struct pcap_pkthdr *hdr, const uint8_t *pack)
 {
-	
+	int i = 0;
 	uint8_t ip_protocol;
 	uint8_t ip_ihl;
 	uint16_t ip_offset;
@@ -260,15 +238,15 @@ void analizar_paquete(const struct pcap_pkthdr *hdr, const uint8_t *pack)
 	uint8_t tcp_ack;
 
 
-	printf("PAQUETE NUMERO %ld\n", contador);
-	printf("Nuevo paquete capturado el %s\n", ctime((const time_t *) & (hdr->ts.tv_sec)));
+	printf("\n********* PAQUETE NUMERO %ld *********\n", contador);
+	printf("Paquete capturado el %s\n", ctime((const time_t *) & (hdr->ts.tv_sec)));
 
 	
 	/*Nivel 2*/
-	int i = 0;
+	printf("Imprimiendo campos del Nivel 2 (Ethernet):\n");
 
 	/*Destino*/
-	printf("Direccion ETH destino = ");
+	printf("\t*Direccion ETH destino: ");
 	
 	printf("%02X", pack[0]);
 
@@ -280,7 +258,7 @@ void analizar_paquete(const struct pcap_pkthdr *hdr, const uint8_t *pack)
 	pack += ETH_ALEN;
 	
 	/*Origen*/
-	printf("Direccion ETH origen = ");
+	printf("\t*Direccion ETH origen: ");
 	
 	/*Impresion del primer byte de la direccion*/
 	printf("%02X", pack[0]);
@@ -295,51 +273,48 @@ void analizar_paquete(const struct pcap_pkthdr *hdr, const uint8_t *pack)
 	pack+=ETH_ALEN;
 
 
-	printf("Tipo de protocolo del siguiente nivel = ");
+	printf("\t*Tipo Ethernet: ");
 	for (i = 0; i < ETH_TLEN; i++) {
 		printf("%02X", pack[i]);		
 	}
 
-	printf("\n");
-	
-	/*Esto de aqui abajo era una guarrada, ip = 0x0800*/
-	/*Hay que comprobar si es asi o al reves (big endian o little endian)*/
 	if(pack[0] != 0x08|| pack[1] != 0x00 ){
 		/*Esto indica que el siguiente protocolo no es IPv4*/
-		printf("El siguiente protocolo no es el esperado, no se imprimirá informacion correspondiente a los siguientes niveles\n\n");		
+		printf("\nEl siguiente protocolo no es el esperado, no se imprimirá informacion correspondiente a los siguientes niveles\n\n");		
 		return;
 	}
-	printf("\n");
+
+	printf("\nImprimiendo campos del Nivel 3 (IP):\n");
 	pack += ETH_TLEN; 
 
 	/*Nivel 3*/
 	aux_pointer = pack;
 
-	printf("Version IP: %u\n", pack[0]>>4);
+	printf("\t*Version IP: %u\n", pack[0]>>4);
 	ip_ihl = (pack[0]&0x0F)*4;
-	printf("Longitud de cabecera: %u bytes\n", ip_ihl);
+	printf("\t*Longitud de cabecera: %u bytes\n", ip_ihl);
 
 	pack += 2;
 
-	printf("Longitud total: %u\n", ntohs(*(uint16_t *) pack));
+	printf("\t*Longitud total: %u\n", ntohs(*(uint16_t *) pack));
 
 	pack += 4;
 
 	ip_offset = ntohs((*(uint16_t *) pack))&0x1FFF;
-	printf("Posicion/Desplazamiento: %u\n", ip_offset);
+	printf("\t*Posicion/Desplazamiento: %u\n", ip_offset);
 
 	
 
 	pack += 2;
 
-	printf("Tiempo de vida: %u\n", pack[0]);
+	printf("\t*Tiempo de vida: %u\n", pack[0]);
 	ip_protocol = pack[1];
-	printf("Protocolo:%u\n", ip_protocol);
+	printf("\t*Protocolo:%u\n", ip_protocol);
 	
 
 	pack += 4;
 	
-	printf("Direccion IP de origen: %u", pack[0]);
+	printf("\t*Direccion IP de origen: %u", pack[0]);
 
 	/*Impresion del resto de bytes de la direccion*/
 	for (i = 1; i < IP_ALEN; i++) {
@@ -351,14 +326,15 @@ void analizar_paquete(const struct pcap_pkthdr *hdr, const uint8_t *pack)
 	if(ipsrc_filter[0] != 0 || ipsrc_filter[1] != 0 || ipsrc_filter[2] != 0 || ipsrc_filter[3] != 0){
 		if(ipsrc_filter[0] != pack[0] || ipsrc_filter[1] != pack[1] || ipsrc_filter[2] != pack[2] || ipsrc_filter[3] != pack[3]){
 			printf("La dirección origen de IP de este paquete NO coincide con la del filtro: ");
-			printf("%"PRIu8".%"PRIu8".%"PRIu8".%"PRIu8"\n\n", ipsrc_filter[0], ipsrc_filter[1], ipsrc_filter[2], ipsrc_filter[3]);
+			printf("%"PRIu8".%"PRIu8".%"PRIu8".%"PRIu8"\n", ipsrc_filter[0], ipsrc_filter[1], ipsrc_filter[2], ipsrc_filter[3]);
+			printf("Se aborta la impresion de los siguientes campos.\n\n");
 			return;
 		}
 	}
 
 	pack += 4;
 
-	printf("Direccion IP de destino: %u", pack[0]);
+	printf("\t*Direccion IP de destino: %u", pack[0]);
 
 	/*Impresion del resto de bytes de la direccion*/
 	for (i = 1; i < IP_ALEN; i++) {
@@ -370,34 +346,36 @@ void analizar_paquete(const struct pcap_pkthdr *hdr, const uint8_t *pack)
 	if(ipdst_filter[0] != 0 || ipdst_filter[1] != 0 || ipdst_filter[2] != 0 || ipdst_filter[3] != 0){
 		if(ipdst_filter[0] != pack[0] || ipdst_filter[1] != pack[1] || ipdst_filter[2] != pack[2] || ipdst_filter[3] != pack[3]){
 			printf("La dirección destino de IP de este paquete NO coincide con la del filtro: ");
-			printf("%"PRIu8".%"PRIu8".%"PRIu8".%"PRIu8"\n\n", ipdst_filter[0], ipdst_filter[1], ipdst_filter[2], ipdst_filter[3]);
+			printf("%"PRIu8".%"PRIu8".%"PRIu8".%"PRIu8"\n", ipdst_filter[0], ipdst_filter[1], ipdst_filter[2], ipdst_filter[3]);
+			printf("Se aborta la impresion de los siguientes campos.\n\n");
 			return;
 		}
 	}
 
 	if(ip_offset != 0){
-		printf("El paquete IP leído no es el primer fragmento, no contiene cabecera de nivel 4\n\n");
+		printf("El desplazamiento es disinto de 0. Este paquete no contiene cabecera de nivel 4.\n");
+	    printf("El paquete se ha analizado por completo.\n\n");
 		return;
 	} 
 
 
 
 	/*IHL te dice el numero de palabras de 32 bits que tiene el nivel ip. Hay que multiplicar por 4
-	para convertir a bytes (pack direcciona byte a byte)*/
+	para convertir a bytes (pack direcciona byte a byte). Esa conversion se ha realizado antes*/
 	pack = aux_pointer + ip_ihl;
 
 	/*nivel 4*/
 
 	if(ip_protocol == TCP_CODE){
 
-		printf("TCP\n");
+		printf("Imprimendo campos del nivel 4 (TCP):\n");
 		
 		lvl4_ports = ntohs(*(uint16_t *) pack);
-		printf("Puerto de origen: %u \n", lvl4_ports);
+		printf("\t*Puerto de origen: %u \n", lvl4_ports);
 		/* Filtrado del puerto origen */
 		if(sport_filter != 0){
 			if(sport_filter != lvl4_ports){
-				printf("El puerto de origen de TCP de este paquete NO coincide con el del filtro: %u\n\n", sport_filter);
+				printf("El puerto de origen de TCP de este paquete NO coincide con el del filtro: %u.\nSe aborta la impresion de los siguientes campos.\n\n", sport_filter);
 				return;
 			}
 		}
@@ -405,11 +383,11 @@ void analizar_paquete(const struct pcap_pkthdr *hdr, const uint8_t *pack)
 		pack += 2;
 
 		lvl4_ports = ntohs(*(uint16_t *) pack);
-		printf("Puerto de destino: %u\n", lvl4_ports);
+		printf("\t*Puerto de destino: %u\n", lvl4_ports);
 		/* Filtrado del puerto destino */
 		if(dport_filter != 0){
 			if(dport_filter != lvl4_ports){
-				printf("El puerto de origen de TCP de este paquete NO coincide con el del filtro: %u\n\n", dport_filter);
+				printf("El puerto de origen de TCP de este paquete NO coincide con el del filtro: %u.\nSe aborta la impresion de los siguientes campos.\n\n", dport_filter);
 				return;
 			}
 		}
@@ -418,43 +396,43 @@ void analizar_paquete(const struct pcap_pkthdr *hdr, const uint8_t *pack)
 		tcp_ack = (pack[0]&0x10)>>4;
 		tcp_syn = (pack[0]&0x02)>>1;
 
-		printf("Bandera SYN: %u\n", tcp_syn);
-		printf("Bandera ACK: %u\n", tcp_ack);
+		printf("\t*Bandera SYN: %u\n", tcp_syn);
+		printf("\t*Bandera ACK: %u\n", tcp_ack);
 
 	}
 	else if(ip_protocol == UDP_CODE){
 
-		printf("UDP\n");
+		printf("Imprimendo campos del nivel 4 (UDP):\n");
 		
 		lvl4_ports = ntohs(*(uint16_t *) pack);
-		printf("Puerto de origen: %u \n", lvl4_ports);
+		printf("\t*Puerto de origen: %u \n", lvl4_ports);
 		/* Filtrado del puerto origen */
 		if(sport_filter != 0){
 			if(sport_filter != lvl4_ports){
-				printf("El puerto de origen de UDP de este paquete no coincide con el del filtro: %u\n\n", sport_filter);
+				printf("El puerto de origen de UDP de este paquete no coincide con el del filtro: %u.\nSe aborta la impresion de los siguientes campos.\n\n", sport_filter);
 				return;
 			}
 		}
 		pack += 2;
 
 		lvl4_ports = ntohs(*(uint16_t *) pack);
-		printf("Puerto de destino: %u\n", lvl4_ports);
+		printf("\t*Puerto de destino: %u\n", lvl4_ports);
 		/* Filtrado del puerto destino */
 		if(dport_filter != 0){
 			if(dport_filter != lvl4_ports){
-				printf("El puerto de origen de UDP de este paquete no coincide con el del filtro: %u\n\n", dport_filter);
+				printf("El puerto de origen de UDP de este paquete no coincide con el del filtro: %u.\nSe aborta la impresion de los siguientes campos.\n\n", dport_filter);
 				return;
 			}
 		}
 		pack += 2;
 
-		printf("Longitud: %u\n", ntohs(*(uint16_t *) pack));
+		printf("\t*Longitud: %u\n", ntohs(*(uint16_t *) pack));
 	}
 	else{
 		printf("El siguiente protocolo no es el esperado. No se imprimira informacion relativa a los siguientes niveles\n\n");
 		return;
 	}
 
-	printf("Final de análisis de paquete\n");
+	printf("El paquete se ha analizado por completo");
 	printf("\n\n");
 }
