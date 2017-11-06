@@ -1,6 +1,6 @@
 /***********************************************************
  crearCDF.c	 
- Primeros pasos para implementar y validar la funcion crearCDF(). Est funcion debe devolver
+ Primeros pasos para implementar y validar la funcion crearCDF(). Esta funcion debe devolver
  un fichero con dos columnas, la primera las muestras, la segunda de distribucion de
  probabilidad acumulada. En la version actual la funcion realiza los dos primeros pasos para
  este objetivo, cuenta el numero de muestras y las ordena.
@@ -22,16 +22,16 @@
 int crearCDF(char* filename_data, char* filename_cdf);
 
 int main(){
-	crearCDF("ejemplo.txt","salida.txt");
+	crearCDF("ethtype.txt","salida.txt");
 	return OK;
 }
 
 int crearCDF(char* filename_data, char* filename_cdf) {
-	char comando[255]; char linea[255]; char aux[255];
+	char comando[255]; char linea[255];;
 	int num_lines;
 	FILE *f;
 //sin control errores
-	sprintf(comando,"wc -l %s 2>&1",filename_data); //wc cuenta lineas acabadas por /n
+	sprintf(comando,"wc -l < %s 2>&1",filename_data); //wc cuenta lineas acabadas por /n
 	printf("Comando en ejecucion: %s\n",comando);
 	f = popen(comando, "r");
 	if(f == NULL){
@@ -40,7 +40,7 @@ int crearCDF(char* filename_data, char* filename_cdf) {
 	}
 	fgets(linea,255,f);
 	printf("Retorno: %s\n",linea);
-	sscanf(linea,"%d %s",&num_lines,aux);
+	sscanf(linea,"%d",&num_lines);
 	pclose(f);
 
 	sprintf(comando,"sort -n < %s > %s 2>&1",filename_data,filename_cdf);
@@ -50,12 +50,15 @@ int crearCDF(char* filename_data, char* filename_cdf) {
 		printf("Error ejecutando el comando\n");
 		return ERROR;
 	}
+	
+	/*Funcion que borra los datos anteriores de memoria, rellena con 0s*/
 	bzero(linea,255);
 	fgets(linea,255,f);
+	/* no devuelve nada porque la salida del comando va a fichero, no a stdout*/
 	printf("Retorno: %s\n",linea);
 	pclose(f);
 
-//crear CDF
+	//crear CDF
 
 	return OK;
 }
