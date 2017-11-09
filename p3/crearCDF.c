@@ -22,7 +22,7 @@
 int crearCDF(char* filename_data, char* filename_cdf);
 
 int main(){
-	crearCDF("ethtype.txt","salida.txt");
+	crearCDF("aux.txt","salida.txt");
 	return OK;
 }
 
@@ -31,6 +31,11 @@ int crearCDF(char* filename_data, char* filename_cdf) {
 	int num_lines;
 	FILE *f;
 //sin control errores
+	if(filename_data == NULL || filename_cdf == NULL){
+		printf("Uno de los archivos no existe\n");
+		return ERROR;
+	}
+
 	sprintf(comando,"wc -l < %s 2>&1",filename_data); //wc cuenta lineas acabadas por /n
 	printf("Comando en ejecucion: %s\n",comando);
 	f = popen(comando, "r");

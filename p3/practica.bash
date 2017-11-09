@@ -12,11 +12,14 @@
 #	$7 TCP DEST PORT
 #	$8 UDP SRC PORT
 #	$9 UDP DEST PORT
-#	$10
-#	$11
+#	$10 MAC SRC PORT
+#	$11 MAC DEST PORT
+#	$12 IP LENGTH (bytes)
 
-  
-tshark -r trazap3.pcap -T fields -e frame.len -e eth.type -e vlan.etype -e ip.src -e ip.dst -e tcp.srcport -e tcp.dstport -e udp.srcport -e udp.dstport > datos.txt 
+#Compilacion del fichero .c para la creación de ECDF (COMPROBAR EN MAQUINA VIRTUAL) 
+gcc crearCDF.c -o crearCDF
+
+tshark -r trazap3.pcap -T fields -e frame.len -e eth.type -e vlan.etype -e ip.src -e ip.dst -e tcp.srcport -e tcp.dstport -e udp.srcport -e udp.dstport -e eth.src -e eth.dst -e ip.len > datos.txt 
 
 ######APARTADO 1 (PORCENTAJE DE PAQUETES IP)
 echo -e "APARTADO 1: PORCENTAJE DE PAQUETES IP"
@@ -58,11 +61,13 @@ sort -t$'\t' -n -r -k3  aux.txt| head -n 10
 #flags de Sort:
 #-t fija el separador que distingue campos, como hemos impreso con \t pues pongo \t
 #-n orden numerico
+#-r reverse (orden inverso)
 #-k? k de Kampo(o Kolumna), y el numero de la que quieras
+# Gracias pero lo busque hahahhahahah
 
 
 #Direcciones IP dest nP = numero paquetes
-#					   nB = numero bytes
+#					 nB = numero bytes
   
 echo -e "\n\t*TOP 10 IP Dest (Numero de paquetes)"
 awk 'BEGIN{ FS = "\t"; }
@@ -164,9 +169,269 @@ echo -e "\n\t*TOP 10 Puerto UDP Dest (Numero de bytes)"
 sort -t$'\t' -n -b -r -k3  aux.txt| head -n 10
 
 
+
+#ECDF de tamaño paquetes a nivel 2. MAC Source.
+#Filtro MAC = 00:11:88:CC:33:F8.
+
+echo -e "\n\t*Generando ECDF de tamaño de paquetes a nivel 2. MAC Source.\n\t\tFiltro MAC = 00:11:88:CC:33:F8"
+awk 'BEGIN{ FS = "\t";}
+{	if($10 == "00:11:88:cc:33:f8"){
+		contadornP[$1] = contadornP[$1] + 1;
+	}
+}
+END {
+	for (valor in contadornP) {
+		print valor "\t" contadornP[valor];
+	}
+}' datos.txt > aux.txt
+
+
+#LLamada a crearCDF
+
+./crearCDF
+
+
+awk 'BEGIN{ FS = "\t";}
+{	if($1 != null){
+		$2 = $2 + anterior;
+		anterior = $2;
+		print $1 "\t" $2
+	}
+}
+END {}' salida.txt > eth_mac_sourceECDF.txt
+
+
+echo -e "\n\t*ECDF generado"
+
+#ECDF de tamaño paquetes a nivel 2. MAC Dest.
+#Filtro MAC = 00:11:88:CC:33:F8.
+
+echo -e "\n\t*Generando ECDF de tamaño de paquetes a nivel 2. MAC Dest.\n\t\tFiltro MAC = 00:11:88:CC:33:F8"
+awk 'BEGIN{ FS = "\t";}
+{	if($11 == "00:11:88:cc:33:f8"){
+		contadornP[$1] = contadornP[$1] + 1;
+	}
+}
+END {
+	for (valor in contadornP) {
+		print valor "\t" contadornP[valor];
+	}
+}' datos.txt > aux.txt
+
+
+#LLamada a crearCDF
+
+./crearCDF
+
+
+awk 'BEGIN{ FS = "\t";}
+{	if($1 != null){
+		$2 = $2 + anterior;
+		anterior = $2;
+		print $1 "\t" $2
+	}
+}
+END {}' salida.txt > eth_mac_destECDF.txt
+
+
+echo -e "\n\t*ECDF generado"
+
+
+#ECDF de tamaño paquetes HTTP a nivel 3. TCP Source.
+#Filtro TCP = 80.
+
+echo -e "\n\t*Generando ECDF de tamaño paquetes HTTP a nivel 3. TCP Source.\n\t\tFiltro TCP = 80"
+awk 'BEGIN{ FS = "\t";}
+{	if($6 == 80){
+		contadornP[$12] = contadornP[$12] + 1;
+	}
+}
+END {
+	for (valor in contadornP) {
+		print valor "\t" contadornP[valor];
+	}
+}' datos.txt > aux.txt
+
+
+#LLamada a crearCDF
+
+./crearCDF
+
+
+awk 'BEGIN{ FS = "\t";}
+{	if($1 != null){
+		$2 = $2 + anterior;
+		anterior = $2;
+		print $1 "\t" $2
+	}
+}
+END {}' salida.txt > http_tcp_sourceECDF.txt
+
+
+echo -e "\n\t*ECDF generado"
+
+
+#ECDF de tamaño paquetes HTTP a nivel 3. TCP Dest.
+#Filtro TCP = 80.
+
+echo -e "\n\t*Generando ECDF de tamaño paquetes HTTP a nivel 3. TCP Dest.\n\t\tFiltro TCP = 80"
+awk 'BEGIN{ FS = "\t";}
+{	if($7 == 80){
+		contadornP[$12] = contadornP[$12] + 1;
+	}
+}
+END {
+	for (valor in contadornP) {
+		print valor "\t" contadornP[valor];
+	}
+}' datos.txt > aux.txt
+
+
+#LLamada a crearCDF
+
+./crearCDF
+
+
+awk 'BEGIN{ FS = "\t";}
+{	if($1 != null){
+		$2 = $2 + anterior;
+		anterior = $2;
+		print $1 "\t" $2
+	}
+}
+END {}' salida.txt > http_tcp_destECDF.txt
+
+
+echo -e "\n\t*ECDF generado"
+
+
+#ECDF de tamaño paquetes DNS nivel 3. UDP Source.
+#Filtro UDP = 53.
+
+echo -e "\n\t*Generando ECDF de tamaño paquetes DNS a nivel 3. UDP Source.\n\t\tFiltro UDP = 53"
+awk 'BEGIN{ FS = "\t";}
+{	if($8 == 53){
+		contadornP[$12] = contadornP[$12] + 1;
+	}
+}
+END {
+	for (valor in contadornP) {
+		print valor "\t" contadornP[valor];
+	}
+}' datos.txt > aux.txt
+
+
+#LLamada a crearCDF
+
+./crearCDF
+
+
+awk 'BEGIN{ FS = "\t";}
+{	if($1 != null){
+		$2 = $2 + anterior;
+		anterior = $2;
+		print $1 "\t" $2
+	}
+}
+END {}' salida.txt > dns_udp_sourceECDF.txt
+
+
+echo -e "\n\t*ECDF generado"
+
+
+#ECDF de tamaño paquetes DNS nivel 3. UDP Dest.
+#Filtro UDP = 53.
+
+echo -e "\n\t*Generando ECDF de tamaño paquetes DNS a nivel 3. UDP Dest.\n\t\tFiltro UDP = 53"
+awk 'BEGIN{ FS = "\t";}
+{	if($9 == 53){
+		contadornP[$12] = contadornP[$12] + 1;
+	}
+}
+END {
+	for (valor in contadornP) {
+		print valor "\t" contadornP[valor];
+	}
+}' datos.txt > aux.txt
+
+
+#LLamada a crearCDF
+
+./crearCDF
+
+
+awk 'BEGIN{ FS = "\t";}
+{	if($1 != null){
+		$2 = $2 + anterior;
+		anterior = $2;
+		print $1 "\t" $2
+	}
+}
+END {}' salida.txt > dns_udp_destECDF.txt
+
+
+echo -e "\n\t*ECDF generado"
+
+# ESTO NO LO TENGO MUY CLARO. puntos 6 y 7. creo que cuando me aclare sera rapido. LO PREGUNTO MAÑANA. (CREO QUE LOS DATOS DE LA PCAP ESTAN MAL)
+
+tshark -r trazap3.pcap -T fields -e frame.time_delta_displayed -e udp.srcport -Y 'udp.srcport eq 4939' | awk 'BEGIN{ FS = "\t";}
+{
+	contadornP[$1] = contadornP[$1] + 1;
+}
+END {
+	for (valor in contadornP) {
+		print valor "\t" contadornP[valor];
+	}
+}' > aux.txt
+
+
+#LLamada a crearCDF
+
+./crearCDF
+
+
+awk 'BEGIN{ FS = "\t";}
+{	if($1 != null){
+		$2 = $2 + anterior;
+		anterior = $2;
+		print $1 "\t" $2
+	}
+}
+END {}' salida.txt > time_udp_sourceECDF.txt
+
+
+echo -e "\n\t*ECDF generado"
+
+tshark -r trazap3.pcap -T fields -e frame.time_delta_displayed -e udp.dstport -Y 'udp.dstport eq 4939' | awk 'BEGIN{ FS = "\t";}
+{
+	contadornP[$1] = contadornP[$1] + 1;
+}
+END {
+	for (valor in contadornP) {
+		print valor "\t" contadornP[valor];
+	}
+}' > aux.txt
+
+
+#LLamada a crearCDF
+
+./crearCDF
+
+
+awk 'BEGIN{ FS = "\t";}
+{	if($1 != null){
+		$2 = $2 + anterior;
+		anterior = $2;
+		print $1 "\t" $2
+	}
+}
+END {}' salida.txt > time_udp_destECDF.txt
+
+echo -e "\n\t*ECDF generado"
+
+
 rm datos.txt
 rm aux.txt
-
 
 
 
