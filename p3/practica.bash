@@ -15,11 +15,15 @@
 #	$10 MAC SRC PORT
 #	$11 MAC DEST PORT
 #	$12 IP LENGTH (bytes)
+#	$13 TIEMPO DESDE EL INICIO DE EJECUCION (segundos)
+#	$14 PROTOCOLO IP
 
 #Compilacion del fichero .c para la creación de ECDF (COMPROBAR EN MAQUINA VIRTUAL) 
 gcc crearCDF.c -o crearCDF
 
-tshark -r trazap3.pcap -T fields -e frame.len -e eth.type -e vlan.etype -e ip.src -e ip.dst -e tcp.srcport -e tcp.dstport -e udp.srcport -e udp.dstport -e eth.src -e eth.dst -e ip.len > datos.txt 
+#aqui podemos poner un if to guapo.
+
+tshark -r trazap3.pcap -T fields -e frame.len -e eth.type -e vlan.etype -e ip.src -e ip.dst -e tcp.srcport -e tcp.dstport -e udp.srcport -e udp.dstport -e eth.src -e eth.dst -e ip.len -e frame.time_relative -e ip.proto > datos.txt 
 
 ######APARTADO 1 (PORCENTAJE DE PAQUETES IP)
 echo -e "APARTADO 1: PORCENTAJE DE PAQUETES IP"
@@ -374,15 +378,24 @@ echo -e "\n\t*ECDF generado"
 
 # ESTO NO LO TENGO MUY CLARO. puntos 6 y 7. creo que cuando me aclare sera rapido. LO PREGUNTO MAÑANA. (CREO QUE LOS DATOS DE LA PCAP ESTAN MAL)
 
-tshark -r trazap3.pcap -T fields -e frame.time_delta_displayed -e udp.srcport -Y 'udp.srcport eq 4939' | awk 'BEGIN{ FS = "\t";}
-{
-	contadornP[$1] = contadornP[$1] + 1;
+
+#ECDF de tiempo entre llegadas de paquetes TCP a nivel 3. IP Source.
+#Filtro IP = 71.166.7.216. Protocolo TCP/IP = 0x06
+
+echo -e "\n\t*Generando ECDF de tiempo entre llegadas de paquetes TCP a nivel 3. IP Source.\n\t\tFiltro IP = 71.166.7.216. Protocolo TCP/IP = 0x06"
+awk 'BEGIN{ FS = "\t";}
+{	if($4 == "71.166.7.216" && $14 == 6){
+		tiempo_actual = $13 - tiempo_anterior;
+		contadornP[tiempo_actual] = contadornP[tiempo_actual] + 1;
+		tiempo_anterior = $13;
+		total += 1;
+	}
 }
 END {
 	for (valor in contadornP) {
-		print valor "\t" contadornP[valor];
+		printf "%f\t%f\n", valor, contadornP[valor]*100/total;
 	}
-}' > aux.txt
+}' datos.txt > aux.txt
 
 
 #LLamada a crearCDF
@@ -394,7 +407,84 @@ awk 'BEGIN{ FS = "\t";}
 {	if($1 != null){
 		$2 = $2 + anterior;
 		anterior = $2;
-		print $1 "\t" $2
+		printf "%f\t%f\n", $1, $2/100;
+	}
+}
+END {}' salida.txt > time_tcp_sourceECDF.txt
+
+
+echo -e "\n\t*ECDF generado"
+
+
+#ECDF de tiempo entre llegadas de paquetes TCP a nivel 3. IP Dest.
+#Filtro IP = 71.166.7.216. Protocolo TCP/IP = 0x06
+
+echo -e "\n\t*Generando ECDF de tiempo entre llegadas de paquetes TCP a nivel 3. IP Dest.\n\t\tFiltro IP = 71.166.7.216. Protocolo TCP/IP = 0x06"
+
+awk 'BEGIN{ FS = "\t";}
+{	if($5 == "71.166.7.216" && $14 == 6){
+		tiempo_actual = $13 - tiempo_anterior;
+		contadornP[tiempo_actual] = contadornP[tiempo_actual] + 1;
+		tiempo_anterior = $13;
+		total += 1;
+	}
+}
+END {
+	for (valor in contadornP) {
+		printf "%f\t%f\n", valor, contadornP[valor]*100/total;
+	}
+}' datos.txt > aux.txt
+
+
+#LLamada a crearCDF
+
+./crearCDF
+
+
+awk 'BEGIN{ FS = "\t";}
+{	if($1 != null){
+		$2 = $2 + anterior;
+		anterior = $2;
+		printf "%f\t%f\n", $1, $2/100;
+	}
+}
+END {}' salida.txt > time_tcp_destECDF.txt
+
+
+echo -e "\n\t*ECDF generado"
+
+#los de udp van raros. por puto floating point. xDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
+
+#ECDF de tiempo entre llegadas de paquetes UDP a nivel 3. UDP Source.
+#Filtro UDP = 4939
+
+echo -e "\n\t*Generando ECDF de tiempo entre llegadas de paquetes UDP a nivel 3. UDP Source.\n\t\tFiltro UDP = 4939"
+
+awk 'BEGIN{ FS = "\t";}
+{	if($8 == 4939){
+		tiempo_actual = $13 - tiempo_anterior;
+		contadornP[tiempo_actual] = contadornP[tiempo_actual] + 1;
+		tiempo_anterior = $13;
+		total += 1;
+	}
+}
+END {
+	for (valor in contadornP) {
+		printf "%f\t%f\n", valor, contadornP[valor]*100/total;
+	}
+}' datos.txt > aux.txt
+
+
+#LLamada a crearCDF
+
+./crearCDF
+
+
+awk 'BEGIN{ FS = "\t";}
+{	if($1 != null){
+		$2 = $2 + anterior;
+		anterior = $2;
+		printf "%f\t%f\n", $1, $2/100;
 	}
 }
 END {}' salida.txt > time_udp_sourceECDF.txt
@@ -402,15 +492,25 @@ END {}' salida.txt > time_udp_sourceECDF.txt
 
 echo -e "\n\t*ECDF generado"
 
-tshark -r trazap3.pcap -T fields -e frame.time_delta_displayed -e udp.dstport -Y 'udp.dstport eq 4939' | awk 'BEGIN{ FS = "\t";}
-{
-	contadornP[$1] = contadornP[$1] + 1;
+
+#ECDF de tiempo entre llegadas de paquetes UDP a nivel 3. UDP Dest.
+#Filtro UDP = 4939
+
+echo -e "\n\t*Generando ECDF de tiempo entre llegadas de paquetes UDP a nivel 3. UDP Dest.\n\t\tFiltro UDP = 4939"
+
+awk 'BEGIN{ FS = "\t";}
+{	if($9 == 4939){
+		tiempo_actual = $13 - tiempo_anterior;
+		contadornP[tiempo_actual] = contadornP[tiempo_actual] + 1;
+		tiempo_anterior = $13;
+		total += 1;
+	}
 }
 END {
 	for (valor in contadornP) {
-		print valor "\t" contadornP[valor];
+		printf "%f\t%f\n", valor, contadornP[valor]*10000/total;
 	}
-}' > aux.txt
+}' datos.txt > aux.txt
 
 
 #LLamada a crearCDF
@@ -422,10 +522,11 @@ awk 'BEGIN{ FS = "\t";}
 {	if($1 != null){
 		$2 = $2 + anterior;
 		anterior = $2;
-		print $1 "\t" $2
+		printf "%f\t%f\n", $1, $2/10000;
 	}
 }
 END {}' salida.txt > time_udp_destECDF.txt
+
 
 echo -e "\n\t*ECDF generado"
 
