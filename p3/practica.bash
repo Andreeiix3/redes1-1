@@ -197,12 +197,24 @@ END {
 
 awk 'BEGIN{ FS = "\t";}
 {	if($1 != null){
-		$2 = $2 + anterior;
-		anterior = $2;
-		print $1 "\t" $2
+		contadornP[$1] = $2 + anterior;
+		anterior = contadornP[$1];
+		total = total + $2;
 	}
 }
-END {}' salida.txt > eth_mac_sourceECDF.txt
+END {
+	for (valor in contadornP) {
+		print valor "\t" contadornP[valor]/total;
+	}
+}' salida.txt | sort -n > eth_mac_sourceECDF.txt
+
+set title "ECDF tamanio paquetes a nivel 2 con MAC Source = 00:11:88:CC:33:F8"
+set xlabel "Tamaño paquetes (bytes)"
+set ylabel "Probabilidad (tanto por uno)"
+set term jpeg
+set output "/graficas/tamanio_mac_source.jpeg"
+plot "eth_mac_sourceECDF.txt" using 1:2 with steps title "ECDF"
+quit
 
 
 echo -e "\n\t*ECDF generado"
@@ -230,12 +242,16 @@ END {
 
 awk 'BEGIN{ FS = "\t";}
 {	if($1 != null){
-		$2 = $2 + anterior;
-		anterior = $2;
-		print $1 "\t" $2
+		contadornP[$1] = $2 + anterior;
+		anterior = contadornP[$1];
+		total = total + $2;
 	}
 }
-END {}' salida.txt > eth_mac_destECDF.txt
+END {
+	for (valor in contadornP) {
+		print valor "\t" contadornP[valor]/total;
+	}
+}' salida.txt | sort -n > eth_mac_destECDF.txt
 
 
 echo -e "\n\t*ECDF generado"
@@ -264,12 +280,16 @@ END {
 
 awk 'BEGIN{ FS = "\t";}
 {	if($1 != null){
-		$2 = $2 + anterior;
-		anterior = $2;
-		print $1 "\t" $2
+		contadornP[$1] = $2 + anterior;
+		anterior = contadornP[$1];
+		total = total + $2;
 	}
 }
-END {}' salida.txt > http_tcp_sourceECDF.txt
+END {
+	for (valor in contadornP) {
+		print valor "\t" contadornP[valor]/total;
+	}
+}' salida.txt | sort -n > http_tcp_sourceECDF.txt
 
 
 echo -e "\n\t*ECDF generado"
@@ -298,12 +318,16 @@ END {
 
 awk 'BEGIN{ FS = "\t";}
 {	if($1 != null){
-		$2 = $2 + anterior;
-		anterior = $2;
-		print $1 "\t" $2
+		contadornP[$1] = $2 + anterior;
+		anterior = contadornP[$1];
+		total = total + $2;
 	}
 }
-END {}' salida.txt > http_tcp_destECDF.txt
+END {
+	for (valor in contadornP) {
+		print valor "\t" contadornP[valor]/total;
+	}
+}' salida.txt | sort -n > http_tcp_destECDF.txt
 
 
 echo -e "\n\t*ECDF generado"
@@ -332,12 +356,16 @@ END {
 
 awk 'BEGIN{ FS = "\t";}
 {	if($1 != null){
-		$2 = $2 + anterior;
-		anterior = $2;
-		print $1 "\t" $2
+		contadornP[$1] = $2 + anterior;
+		anterior = contadornP[$1];
+		total = total + $2;
 	}
 }
-END {}' salida.txt > dns_udp_sourceECDF.txt
+END {
+	for (valor in contadornP) {
+		print valor "\t" contadornP[valor]/total;
+	}
+}' salida.txt | sort -n > dns_udp_sourceECDF.txt
 
 
 echo -e "\n\t*ECDF generado"
@@ -366,12 +394,16 @@ END {
 
 awk 'BEGIN{ FS = "\t";}
 {	if($1 != null){
-		$2 = $2 + anterior;
-		anterior = $2;
-		print $1 "\t" $2
+		contadornP[$1] = $2 + anterior;
+		anterior = contadornP[$1];
+		total = total + $2;
 	}
 }
-END {}' salida.txt > dns_udp_destECDF.txt
+END {
+	for (valor in contadornP) {
+		print valor "\t" contadornP[valor]/total;
+	}
+}' salida.txt | sort -n > dns_udp_destECDF.txt
 
 
 echo -e "\n\t*ECDF generado"
@@ -388,12 +420,11 @@ awk 'BEGIN{ FS = "\t";}
 		tiempo_actual = $13 - tiempo_anterior;
 		contadornP[tiempo_actual] = contadornP[tiempo_actual] + 1;
 		tiempo_anterior = $13;
-		total += 1;
 	}
 }
 END {
 	for (valor in contadornP) {
-		printf "%f\t%f\n", valor, contadornP[valor]*100/total;
+		printf "%f\t%f\n", valor, contadornP[valor];
 	}
 }' datos.txt > aux.txt
 
@@ -405,12 +436,16 @@ END {
 
 awk 'BEGIN{ FS = "\t";}
 {	if($1 != null){
-		$2 = $2 + anterior;
-		anterior = $2;
-		printf "%f\t%f\n", $1, $2/100;
+		contadornP[$1] = $2 + anterior;
+		anterior = contadornP[$1];
+		total = total + $2;
 	}
 }
-END {}' salida.txt > time_tcp_sourceECDF.txt
+END {
+	for (valor in contadornP) {
+		print valor "\t" contadornP[valor]/total;
+	}
+}' salida.txt | sort -n > time_tcp_sourceECDF.txt
 
 
 echo -e "\n\t*ECDF generado"
@@ -426,12 +461,11 @@ awk 'BEGIN{ FS = "\t";}
 		tiempo_actual = $13 - tiempo_anterior;
 		contadornP[tiempo_actual] = contadornP[tiempo_actual] + 1;
 		tiempo_anterior = $13;
-		total += 1;
 	}
 }
 END {
 	for (valor in contadornP) {
-		printf "%f\t%f\n", valor, contadornP[valor]*100/total;
+		printf "%f\t%f\n", valor, contadornP[valor];
 	}
 }' datos.txt > aux.txt
 
@@ -443,17 +477,19 @@ END {
 
 awk 'BEGIN{ FS = "\t";}
 {	if($1 != null){
-		$2 = $2 + anterior;
-		anterior = $2;
-		printf "%f\t%f\n", $1, $2/100;
+		contadornP[$1] = $2 + anterior;
+		anterior = contadornP[$1];
+		total = total + $2;
 	}
 }
-END {}' salida.txt > time_tcp_destECDF.txt
+END {
+	for (valor in contadornP) {
+		print valor "\t" contadornP[valor]/total;
+	}
+}' salida.txt | sort -n > time_tcp_destECDF.txt
 
 
 echo -e "\n\t*ECDF generado"
-
-#los de udp van raros. por puto floating point. xDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
 
 #ECDF de tiempo entre llegadas de paquetes UDP a nivel 3. UDP Source.
 #Filtro UDP = 4939
@@ -465,12 +501,11 @@ awk 'BEGIN{ FS = "\t";}
 		tiempo_actual = $13 - tiempo_anterior;
 		contadornP[tiempo_actual] = contadornP[tiempo_actual] + 1;
 		tiempo_anterior = $13;
-		total += 1;
 	}
 }
 END {
 	for (valor in contadornP) {
-		printf "%f\t%f\n", valor, contadornP[valor]*100/total;
+		printf "%f\t%f\n", valor, contadornP[valor];
 	}
 }' datos.txt > aux.txt
 
@@ -482,12 +517,16 @@ END {
 
 awk 'BEGIN{ FS = "\t";}
 {	if($1 != null){
-		$2 = $2 + anterior;
-		anterior = $2;
-		printf "%f\t%f\n", $1, $2/100;
+		contadornP[$1] = $2 + anterior;
+		anterior = contadornP[$1];
+		total = total + $2;
 	}
 }
-END {}' salida.txt > time_udp_sourceECDF.txt
+END {
+	for (valor in contadornP) {
+		print valor "\t" contadornP[valor]/total;
+	}
+}' salida.txt | sort -n > time_udp_sourceECDF.txt
 
 
 echo -e "\n\t*ECDF generado"
@@ -503,12 +542,11 @@ awk 'BEGIN{ FS = "\t";}
 		tiempo_actual = $13 - tiempo_anterior;
 		contadornP[tiempo_actual] = contadornP[tiempo_actual] + 1;
 		tiempo_anterior = $13;
-		total += 1;
 	}
 }
 END {
 	for (valor in contadornP) {
-		printf "%f\t%f\n", valor, contadornP[valor]*10000/total;
+		printf "%f\t%f\n", valor, contadornP[valor];
 	}
 }' datos.txt > aux.txt
 
@@ -520,12 +558,16 @@ END {
 
 awk 'BEGIN{ FS = "\t";}
 {	if($1 != null){
-		$2 = $2 + anterior;
-		anterior = $2;
-		printf "%f\t%f\n", $1, $2/10000;
+		contadornP[$1] = $2 + anterior;
+		anterior = contadornP[$1];
+		total = total + $2;
 	}
 }
-END {}' salida.txt > time_udp_destECDF.txt
+END {
+	for (valor in contadornP) {
+		print valor "\t" contadornP[valor]/total;
+	}
+}' salida.txt | sort -n > time_udp_destECDF.txt
 
 
 echo -e "\n\t*ECDF generado"
