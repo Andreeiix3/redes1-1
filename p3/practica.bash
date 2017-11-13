@@ -39,11 +39,11 @@ awk 'BEGIN{FS="\t";}
 }
 END {
 	data = n_ip/NR
-    print "\t*El porcentaje de paquetes IP es " 100*data "%";
+    printf "\t*El porcentaje de paquetes IP es  %.4f %%\n", 100*data;
 	print "\t De los cuales:";
 	print "\t\t*El " n_tcp/n_ip*100 "% son TCP";
 	print "\t\t*El " n_udp/n_ip*100 "% son UDP";
-	print "\t*El porcentaje de paquetes NO-IP es " 100*(1-data) "%";
+	printf "\t*El porcentaje de paquetes NO-IP es %.4f %%\n", 100*(1-data);
 	
 }' datos.txt
 
@@ -237,7 +237,7 @@ unset label
 unset key
 set term png
 set output "./plots/tamanio_mac_source.png"
-plot "eth_mac_sourceECDF.txt" using 1:2 with boxes
+plot "eth_mac_sourceECDF.txt" using 1:2 with steps
 EOF
 
 
@@ -286,7 +286,7 @@ unset label
 unset key
 set term png
 set output "./plots/tamanio_mac_dest.png"
-plot "eth_mac_destECDF.txt" using 1:2 with boxes
+plot "eth_mac_destECDF.txt" using 1:2 with steps
 EOF
 
 echo -e "\n\tECDF generado!"
@@ -335,7 +335,7 @@ unset label
 unset key
 set term png
 set output "./plots/tamanio_http_source.png"
-plot "http_tcp_sourceECDF.txt" using 1:2 with boxes
+plot "http_tcp_sourceECDF.txt" using 1:2 with steps
 EOF
 
 echo -e "\n\tECDF generado!"
@@ -384,7 +384,7 @@ unset label
 unset key
 set term png
 set output "./plots/tamanio_http_dest.png"
-plot "http_tcp_destECDF.txt" using 1:2 with boxes
+plot "http_tcp_destECDF.txt" using 1:2 with steps
 EOF
 
 echo -e "\n\tECDF generado!"
@@ -435,7 +435,7 @@ unset label
 unset key
 set term png
 set output "./plots/tamanio_dns_source.png"
-plot "dns_udp_sourceECDF.txt" using 1:2 with boxes
+plot "dns_udp_sourceECDF.txt" using 1:2 with steps
 EOF
 
 echo -e "\n\tECDF generado!"
@@ -483,13 +483,10 @@ unset label
 unset key
 set term png
 set output "./plots/tamanio_dns_dest.png"
-plot "dns_udp_destECDF.txt" using 1:2 with boxes
+plot "dns_udp_destECDF.txt" using 1:2 with steps
 EOF
 
 echo -e "\n\tECDF generado!"
-
-# ESTO NO LO TENGO MUY CLARO. puntos 6 y 7. creo que cuando me aclare sera rapido. LO PREGUNTO MAÑANA. (CREO QUE LOS DATOS DE LA PCAP ESTAN MAL)
-
 
 
 echo -e "\n##### APARTADO 6: ECDF Interarrival Time de flujo TCP #####\n"
@@ -532,12 +529,13 @@ END {
 gnuplot << EOF
 set title "Tiempo entre llegadas de paquetes TCP (Nivel 3). IP Source = 71.166.7.216"
 set xlabel "Tamano paquetes (bytes)"
+set logscale x
 set ylabel "Probabilidad"
 unset label
 unset key
 set term png
 set output "./plots/interarrivaltime_tcp_source.png"
-plot "time_tcp_sourceECDF.txt" using 1:2 with boxes
+plot "time_tcp_sourceECDF.txt" using 1:2 with steps
 EOF
 
 echo -e "\n\tECDF generado!"
@@ -582,12 +580,13 @@ END {
 gnuplot << EOF
 set title "Tiempo entre llegadas de paquetes TCP (Nivel 3). IP Dest = 71.166.7.216"
 set xlabel "Tamano paquetes (bytes)"
+set logscale x
 set ylabel "Probabilidad"
 unset label
 unset key
 set term png
 set output "./plots/interarrivaltime_tcp_dest.png"
-plot "time_tcp_destECDF.txt" using 1:2 with boxes
+plot "time_tcp_destECDF.txt" using 1:2 with steps
 EOF
 
 echo -e "\n\tECDF generado!"
@@ -642,7 +641,7 @@ echo -e "\n\tAtencion, no hay ningun paquete que satisfaga el filtro. No se pued
 #unset key
 #set term png
 #set output "./plots/interarrivaltime_udp_source.png"
-#plot "time_udp_sourceECDF.txt" using 1:2 with boxes
+#plot "time_udp_sourceECDF.txt" using 1:2 with steps
 #EOF
 #echo -e "\n\tECDF generado!"
 
@@ -687,19 +686,76 @@ END {
 gnuplot << EOF
 set title "Tiempo entre llegadas de paquetes UDP (Nivel 3). Puerto UDP Dest = 4939"
 set xlabel "Tamano paquetes (bytes)"
+set logscale x 
 set ylabel "Probabilidad"
 unset label
 unset key
 set term png
 set output "./plots/interarrivaltime_udp_dest.png"
-plot "time_udp_destECDF.txt" using 1:2 with boxes
+plot "time_udp_destECDF.txt" using 1:2 with steps
 EOF
 
 echo -e "\n\tECDF generado!"
 
 
+######APARTADO 8 (Ancho de Banda en bps)
+
+echo -e "\n##### APARTADO 8: Ancho de Banda (bps) #####\n"
+
+echo -e "\n\t*Generando grafica de Ancho de Banda. Direccion MAC Src =  00:11:88:CC:33:F8"
+
+awk 'BEGIN{ FS = "\t";}
+{	if($10 == "00:11:88:cc:33:f8"){
+		contadornP[int($13)] = $1 * 8;
+	}
+}
+END {
+	for (valor in contadornP) {
+		printf "%f\t%f\n", valor, contadornP[valor];
+	}
+}' datos.txt | sort -n > throughput_source.txt
+
+gnuplot << EOF
+set title "Ancho de Banda. Dir MAC Source = 00:11:88:CC:33:F8"
+set xlabel "Tamano paquetes (bytes)"
+set ylabel "Probabilidad"
+unset label
+unset key
+set term png
+set output "./plots/throughput_source.png"
+plot "throughput_source.txt" using 1:2 with steps
+EOF
+
+echo -e "\n\t Grafica generada!";
+
+echo -e "\n\t*Generando grafica de Ancho de Banda. Direccion MAC Dest =  00:11:88:CC:33:F8"
+awk 'BEGIN{ FS = "\t";}
+{	if($11 == "00:11:88:cc:33:f8"){
+		contadornP[int($13)] = $1 * 8;
+	}
+}
+END {
+	for (valor in contadornP) {
+		printf "%f\t%f\n", valor, contadornP[valor];
+	}
+}' datos.txt | sort -n > throughput_dest.txt
+
+
+gnuplot << EOF
+set title "Ancho de Banda. Dir MAC Dest = 00:11:88:CC:33:F8"
+set xlabel "Tamano paquetes (bytes)"
+set ylabel "Probabilidad"
+unset label
+unset key
+set term png
+set output "./plots/throughput_dest.png"
+plot "throughput_dest.txt" using 1:2 with steps
+EOF
+
+echo -e "\n\t Grafica generada!";
+
 rm crearCDF
-rm *.txt
+#rm *.txt
 
 
 
