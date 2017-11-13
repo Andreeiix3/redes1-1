@@ -26,24 +26,34 @@ gcc crearCDF.c -o crearCDF
 tshark -r trazap3.pcap -T fields -e frame.len -e eth.type -e vlan.etype -e ip.src -e ip.dst -e tcp.srcport -e tcp.dstport -e udp.srcport -e udp.dstport -e eth.src -e eth.dst -e ip.len -e frame.time_relative -e ip.proto > datos.txt 
 
 ######APARTADO 1 (PORCENTAJE DE PAQUETES IP)
-echo -e "APARTADO 1: PORCENTAJE DE PAQUETES IP"
-awk '{
-	if(($2 == 2048)||($3 == 2048))	
+echo -e "##### APARTADO 1: PORCENTAJE DE PAQUETES IP #####\n"
+awk 'BEGIN{FS="\t";}
+	{
+	if(($2 == 2048)||($3 == 2048)){
 		n_ip = n_ip + 1;
+		if($14 == 6)
+			n_tcp = n_tcp + 1;
+		if($14 == 17)
+			n_udp = n_udp + 1;
+	}	
 }
 END {
 	data = n_ip/NR
     print "\t*El porcentaje de paquetes IP es " 100*data "%";
+	print "\t De los cuales:";
+	print "\t\t*El " n_tcp/n_ip*100 "% son TCP";
+	print "\t\t*El " n_udp/n_ip*100 "% son UDP";
 	print "\t*El porcentaje de paquetes NO-IP es " 100*(1-data) "%";
+	
 }' datos.txt
 
 ######APARTADO 2 (TOP 10 IP/PUERTOS-ORIGEN/DESTINO-BYTES/PAQUETES)
-echo -e "\nAPARTADO 2: TOPs 10"
+echo -e "\n ##### APARTADO 2: TOPs 10 #####"
 
 #Direcciones IP origen nP = numero paquetes
 #					   nB = numero bytes
 
-echo -e "\n\t*TOP 10 IP Source (Numero de paquetes)"
+echo -e "\n\t*TOP 10 Direcciones IP Source (Orden: Numero de paquetes)\n"
 awk 'BEGIN{ FS = "\t"; }
 {
 	if($4 != null){
@@ -57,23 +67,24 @@ END {
 	}
 }' datos.txt > aux.txt
 
+echo -e "Formato: Direccion IP//Numero de Paquetes//Numero de bytes\n"  
 sort -t$'\t' -n -r -k2  aux.txt| head -n 10
-echo -e "\n\t*TOP 10 IP Source (Numero de bytes)"
+echo -e "\n\t*TOP 10 Direcciones IP Source (Orden: Numero de bytes)\n"
+echo -e "Formato: Direccion IP//Numero de Paquetes//Numero de bytes\n"  
 sort -t$'\t' -n -r -k3  aux.txt| head -n 10
 
-#Te ahorro la busqueda:
 #flags de Sort:
 #-t fija el separador que distingue campos, como hemos impreso con \t pues pongo \t
 #-n orden numerico
 #-r reverse (orden inverso)
 #-k? k de Kampo(o Kolumna), y el numero de la que quieras
-# Gracias pero lo busque hahahhahahah
+
 
 
 #Direcciones IP dest nP = numero paquetes
 #					 nB = numero bytes
   
-echo -e "\n\t*TOP 10 IP Dest (Numero de paquetes)"
+echo -e "\n\t*TOP 10 Direcciones IP Dest (Orden: Numero de paquetes)\n"
 awk 'BEGIN{ FS = "\t"; }
 {	
 	if($5 != null){
@@ -87,14 +98,16 @@ END {
 	}
 }' datos.txt > aux.txt
 
+echo -e "Formato: Direccion IP//Numero de Paquetes//Numero de bytes\n"  
 sort -t$'\t' -n -r -k2  aux.txt| head -n 10
-echo -e "\n\t*TOP 10 Puerto IP Dest (Numero de bytes)"
+echo -e "\n\t*TOP 10 Direcciones IP Dest (Orden: Numero de bytes)\n"
+echo -e "Formato: Direccion IP//Numero de Paquetes//Numero de bytes\n"  
 sort -t$'\t' -n -r -k3  aux.txt| head -n 10
 
 
-#Direcciones TCP Source
+#Puertos TCP Source
 
-echo -e "\n\t*TOP 10 Puerto TCP Source (Numero de paquetes)"
+echo -e "\n\t*TOP 10 Puerto TCP Source (Orden: Numero de paquetes)\n"
 awk 'BEGIN{ FS = "\t";}
 {	if($6 != null){
 		contadornP[$6] = contadornP[$6] + 1;
@@ -107,14 +120,16 @@ END {
 	}
 }' datos.txt > aux.txt
 
+echo -e "Formato: Puerto TCP//Numero de Paquetes//Numero de bytes\n"  
 sort -t$'\t' -n -b -r -k2  aux.txt| head -n 10
-echo -e "\n\t*TOP 10 Puertos TCP Source (Numero de bytes)"
+echo -e "\n\t*TOP 10 Puertos TCP Source (Orden: Numero de bytes)\n"
+echo -e "Formato: Puerto TCP//Numero de Paquetes//Numero de bytes\n"  
 sort -t$'\t' -n -r -k3  aux.txt| head -n 10
 
 
 #Puertos TCP Dest
 
-echo -e "\n\t*TOP 10 Puerto TCP Dest (Numero de paquetes)"
+echo -e "\n\t*TOP 10 Puerto TCP Dest (Orden: Numero de paquetes)\n"
 awk 'BEGIN{ FS = "\t";}
 {	if($7 != null){
 		contadornP[$7] = contadornP[$7] + 1;
@@ -127,15 +142,17 @@ END {
 	}
 }' datos.txt > aux.txt
 
+echo -e "Formato: Puerto TCP//Numero de Paquetes//Numero de bytes\n"  
 sort -t$'\t' -n -b -r -k2  aux.txt| head -n 10
-echo -e "\n\t*TOP 10 Puertos TCP Dest (Numero de bytes)"
+echo -e "\n\t*TOP 10 Puertos TCP Dest (Orden: Numero de bytes)\n"
+echo -e "Formato: Puerto TCP//Numero de Paquetes//Numero de bytes\n"  
 sort -t$'\t' -n -r -k3  aux.txt| head -n 10
 
 
 #Puertos UDP Source
 
 
-echo -e "\n\t*TOP 10 Puerto UDP Source (Numero de paquetes)"
+echo -e "\n\t*TOP 10 Puerto UDP Source (Orden: Numero de paquetes)\n"
 awk 'BEGIN{ FS = "\t";}
 {	if($8 != null){
 		contadornP[$8] = contadornP[$8] + 1;
@@ -148,14 +165,16 @@ END {
 	}
 }' datos.txt > aux.txt
 
+echo -e "Formato: Puerto UDP//Numero de Paquetes//Numero de bytes\n"  
 sort -t$'\t' -n -b -r -k2  aux.txt| head -n 10
-echo -e "\n\t*TOP 10 Puertos UDP Source (Numero de bytes)"
+echo -e "\n\t*TOP 10 Puertos UDP Source (Orden: Numero de bytes)\n"
+echo -e "Formato: Puerto UDP//Numero de Paquetes//Numero de bytes\n"  
 sort -t$'\t' -n -b -r -k3  aux.txt| head -n 10
 
 
 #Puertos UDP Dest
 
-echo -e "\n\t*TOP 10 Puerto UDP Dest (Numero de paquetes)"
+echo -e "\n\t*TOP 10 Puerto UDP Dest (Orden: Numero de paquetes)\n"
 awk 'BEGIN{ FS = "\t";}
 {	if($9 != null){
 		contadornP[$9] = contadornP[$9] + 1;
@@ -168,16 +187,18 @@ END {
 	}
 }' datos.txt > aux.txt
 
-sort -t$'\t' -n -b -r -k2  aux.txt| head -n 10
-echo -e "\n\t*TOP 10 Puerto UDP Dest (Numero de bytes)"
-sort -t$'\t' -n -b -r -k3  aux.txt| head -n 10
+echo -e "Formato: Puerto UDP//Numero de Paquetes//Numero de bytes\n"  
+sort -t$'\t' -n -b -r -k2  aux.txt| head -n 10 
+echo -e "\n\t*TOP 10 Puerto UDP Dest (Orden: Numero de bytes)\n"
+echo -e "Formato: Puerto UDP//Numero de Paquetes//Numero de bytes\n"  
+sort -t$'\t' -n -b -r -k3  aux.txt| head -n 10 
 
 
-
+echo -e "\n##### APARTADO 3: ECDF Tamanos a nivel 2 #####\n"
 #ECDF de tamaño paquetes a nivel 2. MAC Source.
 #Filtro MAC = 00:11:88:CC:33:F8.
 
-echo -e "\n\t*Generando ECDF de tamaño de paquetes a nivel 2. MAC Source.\n\t\tFiltro MAC = 00:11:88:CC:33:F8"
+echo -e "\t*Generando ECDF de tamaño de paquetes a nivel 2. MAC Source.\n\t\tFiltro MAC = 00:11:88:CC:33:F8"
 awk 'BEGIN{ FS = "\t";}
 {	if($10 == "00:11:88:cc:33:f8"){
 		contadornP[$1] = contadornP[$1] + 1;
@@ -208,16 +229,19 @@ END {
 	}
 }' salida.txt | sort -n > eth_mac_sourceECDF.txt
 
-set title "ECDF tamanio paquetes a nivel 2 con MAC Source = 00:11:88:CC:33:F8"
-set xlabel "Tamaño paquetes (bytes)"
-set ylabel "Probabilidad (tanto por uno)"
-set term jpeg
-set output "/graficas/tamanio_mac_source.jpeg"
-plot "eth_mac_sourceECDF.txt" using 1:2 with steps title "ECDF"
-quit
+gnuplot << EOF
+set title "ECDF Tamano paquetes a nivel 2. MAC Source = 00:11:88:CC:33:F8"
+set xlabel "Tamano paquetes (bytes)"
+set ylabel "Probabilidad"
+unset label
+unset key
+set term png
+set output "./plots/tamanio_mac_source.png"
+plot "eth_mac_sourceECDF.txt" using 1:2 with boxes
+EOF
 
 
-echo -e "\n\t*ECDF generado"
+echo -e "\n\tECDF generado!"
 
 #ECDF de tamaño paquetes a nivel 2. MAC Dest.
 #Filtro MAC = 00:11:88:CC:33:F8.
@@ -254,13 +278,24 @@ END {
 }' salida.txt | sort -n > eth_mac_destECDF.txt
 
 
-echo -e "\n\t*ECDF generado"
+gnuplot << EOF
+set title "ECDF Tamano paquetes a nivel 2. MAC Dest = 00:11:88:CC:33:F8"
+set xlabel "Tamano paquetes (bytes)"
+set ylabel "Probabilidad"
+unset label
+unset key
+set term png
+set output "./plots/tamanio_mac_dest.png"
+plot "eth_mac_destECDF.txt" using 1:2 with boxes
+EOF
 
+echo -e "\n\tECDF generado!"
 
 #ECDF de tamaño paquetes HTTP a nivel 3. TCP Source.
 #Filtro TCP = 80.
 
-echo -e "\n\t*Generando ECDF de tamaño paquetes HTTP a nivel 3. TCP Source.\n\t\tFiltro TCP = 80"
+echo -e "\n##### APARTADO 4: ECDF Tamanos de paquetes HTTP a nivel 3 #####\n"
+echo -e "\t*Generando ECDF de tamaño paquetes HTTP a nivel 3. TCP Source.\n\t\tFiltro TCP = 80"
 awk 'BEGIN{ FS = "\t";}
 {	if($6 == 80){
 		contadornP[$12] = contadornP[$12] + 1;
@@ -292,7 +327,18 @@ END {
 }' salida.txt | sort -n > http_tcp_sourceECDF.txt
 
 
-echo -e "\n\t*ECDF generado"
+gnuplot << EOF
+set title "ECDF Tamano paquetes HTTP a nivel 3. TCP Source = 80"
+set xlabel "Tamano paquetes (bytes)"
+set ylabel "Probabilidad"
+unset label
+unset key
+set term png
+set output "./plots/tamanio_http_source.png"
+plot "http_tcp_sourceECDF.txt" using 1:2 with boxes
+EOF
+
+echo -e "\n\tECDF generado!"
 
 
 #ECDF de tamaño paquetes HTTP a nivel 3. TCP Dest.
@@ -330,13 +376,26 @@ END {
 }' salida.txt | sort -n > http_tcp_destECDF.txt
 
 
-echo -e "\n\t*ECDF generado"
+gnuplot << EOF
+set title "ECDF Tamano paquetes HTTP a nivel 3. TCP Dest = 80"
+set xlabel "Tamano paquetes (bytes)"
+set ylabel "Probabilidad"
+unset label
+unset key
+set term png
+set output "./plots/tamanio_http_dest.png"
+plot "http_tcp_destECDF.txt" using 1:2 with boxes
+EOF
+
+echo -e "\n\tECDF generado!"
 
 
+
+echo -e "\n##### APARTADO 5: ECDF Tamanos de paquetes DNS a nivel 3 #####\n"
 #ECDF de tamaño paquetes DNS nivel 3. UDP Source.
 #Filtro UDP = 53.
 
-echo -e "\n\t*Generando ECDF de tamaño paquetes DNS a nivel 3. UDP Source.\n\t\tFiltro UDP = 53"
+echo -e "\t*Generando ECDF de tamaño paquetes DNS a nivel 3. UDP Source.\n\t\tFiltro UDP = 53"
 awk 'BEGIN{ FS = "\t";}
 {	if($8 == 53){
 		contadornP[$12] = contadornP[$12] + 1;
@@ -368,7 +427,18 @@ END {
 }' salida.txt | sort -n > dns_udp_sourceECDF.txt
 
 
-echo -e "\n\t*ECDF generado"
+gnuplot << EOF
+set title "ECDF Tamano paquetes DNS a nivel 3. UDP Source = 53"
+set xlabel "Tamano paquetes (bytes)"
+set ylabel "Probabilidad"
+unset label
+unset key
+set term png
+set output "./plots/tamanio_dns_source.png"
+plot "dns_udp_sourceECDF.txt" using 1:2 with boxes
+EOF
+
+echo -e "\n\tECDF generado!"
 
 
 #ECDF de tamaño paquetes DNS nivel 3. UDP Dest.
@@ -405,16 +475,28 @@ END {
 	}
 }' salida.txt | sort -n > dns_udp_destECDF.txt
 
+gnuplot << EOF
+set title "ECDF Tamano paquetes DNS a nivel 3. UDP Dest = 53"
+set xlabel "Tamano paquetes (bytes)"
+set ylabel "Probabilidad"
+unset label
+unset key
+set term png
+set output "./plots/tamanio_dns_dest.png"
+plot "dns_udp_destECDF.txt" using 1:2 with boxes
+EOF
 
-echo -e "\n\t*ECDF generado"
+echo -e "\n\tECDF generado!"
 
 # ESTO NO LO TENGO MUY CLARO. puntos 6 y 7. creo que cuando me aclare sera rapido. LO PREGUNTO MAÑANA. (CREO QUE LOS DATOS DE LA PCAP ESTAN MAL)
 
 
+
+echo -e "\n##### APARTADO 6: ECDF Interarrival Time de flujo TCP #####\n"
 #ECDF de tiempo entre llegadas de paquetes TCP a nivel 3. IP Source.
 #Filtro IP = 71.166.7.216. Protocolo TCP/IP = 0x06
 
-echo -e "\n\t*Generando ECDF de tiempo entre llegadas de paquetes TCP a nivel 3. IP Source.\n\t\tFiltro IP = 71.166.7.216. Protocolo TCP/IP = 0x06"
+echo -e "\t*Generando ECDF de tiempo entre llegadas de paquetes TCP a nivel 3. IP Source.\n\t\tFiltro IP = 71.166.7.216. Protocolo TCP/IP = 0x06"
 awk 'BEGIN{ FS = "\t";}
 {	if($4 == "71.166.7.216" && $14 == 6){
 		tiempo_actual = $13 - tiempo_anterior;
@@ -447,9 +529,18 @@ END {
 	}
 }' salida.txt | sort -n > time_tcp_sourceECDF.txt
 
+gnuplot << EOF
+set title "Tiempo entre llegadas de paquetes TCP (Nivel 3). IP Source = 71.166.7.216"
+set xlabel "Tamano paquetes (bytes)"
+set ylabel "Probabilidad"
+unset label
+unset key
+set term png
+set output "./plots/interarrivaltime_tcp_source.png"
+plot "time_tcp_sourceECDF.txt" using 1:2 with boxes
+EOF
 
-echo -e "\n\t*ECDF generado"
-
+echo -e "\n\tECDF generado!"
 
 #ECDF de tiempo entre llegadas de paquetes TCP a nivel 3. IP Dest.
 #Filtro IP = 71.166.7.216. Protocolo TCP/IP = 0x06
@@ -488,13 +579,26 @@ END {
 	}
 }' salida.txt | sort -n > time_tcp_destECDF.txt
 
+gnuplot << EOF
+set title "Tiempo entre llegadas de paquetes TCP (Nivel 3). IP Dest = 71.166.7.216"
+set xlabel "Tamano paquetes (bytes)"
+set ylabel "Probabilidad"
+unset label
+unset key
+set term png
+set output "./plots/interarrivaltime_tcp_dest.png"
+plot "time_tcp_destECDF.txt" using 1:2 with boxes
+EOF
 
-echo -e "\n\t*ECDF generado"
+echo -e "\n\tECDF generado!"
 
+
+
+echo -e "\n##### APARTADO 7: ECDF Interarrival Time de flujo UDP #####\n"
 #ECDF de tiempo entre llegadas de paquetes UDP a nivel 3. UDP Source.
 #Filtro UDP = 4939
 
-echo -e "\n\t*Generando ECDF de tiempo entre llegadas de paquetes UDP a nivel 3. UDP Source.\n\t\tFiltro UDP = 4939"
+echo -e "\t*Generando ECDF de tiempo entre llegadas de paquetes UDP a nivel 3. UDP Source.\n\t\tFiltro UDP = 4939"
 
 awk 'BEGIN{ FS = "\t";}
 {	if($8 == 4939){
@@ -528,8 +632,19 @@ END {
 	}
 }' salida.txt | sort -n > time_udp_sourceECDF.txt
 
+echo -e "\n\tAtencion, no hay ningun paquete que satisfaga el filtro. No se puede generar un ECDF."
 
-echo -e "\n\t*ECDF generado"
+#gnuplot << EOF
+#set title "Tiempo entre llegadas de paquetes UDP (Nivel 3). Puerto #UDP Source = 4939"
+#set xlabel "Tamano paquetes (bytes)"
+#set ylabel "Probabilidad"
+#unset label
+#unset key
+#set term png
+#set output "./plots/interarrivaltime_udp_source.png"
+#plot "time_udp_sourceECDF.txt" using 1:2 with boxes
+#EOF
+#echo -e "\n\tECDF generado!"
 
 
 #ECDF de tiempo entre llegadas de paquetes UDP a nivel 3. UDP Dest.
@@ -569,12 +684,23 @@ END {
 	}
 }' salida.txt | sort -n > time_udp_destECDF.txt
 
+gnuplot << EOF
+set title "Tiempo entre llegadas de paquetes UDP (Nivel 3). Puerto UDP Dest = 4939"
+set xlabel "Tamano paquetes (bytes)"
+set ylabel "Probabilidad"
+unset label
+unset key
+set term png
+set output "./plots/interarrivaltime_udp_dest.png"
+plot "time_udp_destECDF.txt" using 1:2 with boxes
+EOF
 
-echo -e "\n\t*ECDF generado"
+echo -e "\n\tECDF generado!"
 
 
-rm datos.txt
-rm aux.txt
+rm crearCDF
+rm *.txt
+
 
 
 

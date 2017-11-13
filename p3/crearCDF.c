@@ -37,19 +37,16 @@ int crearCDF(char* filename_data, char* filename_cdf) {
 	}
 
 	sprintf(comando,"wc -l < %s 2>&1",filename_data); //wc cuenta lineas acabadas por /n
-	printf("Comando en ejecucion: %s\n",comando);
 	f = popen(comando, "r");
 	if(f == NULL){
 		printf("Error ejecutando el comando\n");
 		return ERROR;
 	}
 	fgets(linea,255,f);
-	printf("Retorno: %s\n",linea);
 	sscanf(linea,"%d",&num_lines);
 	pclose(f);
 
 	sprintf(comando,"sort -n < %s > %s 2>&1",filename_data,filename_cdf);
-	printf("Comando en ejecucion: %s\n",comando);
 	f = popen(comando, "r");
 	if(f == NULL){
 		printf("Error ejecutando el comando\n");
@@ -60,7 +57,6 @@ int crearCDF(char* filename_data, char* filename_cdf) {
 	bzero(linea,255);
 	fgets(linea,255,f);
 	/* no devuelve nada porque la salida del comando va a fichero, no a stdout*/
-	printf("Retorno: %s\n",linea);
 	pclose(f);
 
 	//crear CDF
