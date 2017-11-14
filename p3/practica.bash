@@ -218,7 +218,9 @@ END {
 
 awk 'BEGIN{ FS = "\t";}
 {	if($1 != null){
-		contadornP[$1] = $2 + anterior;
+		contadornP[$1] = $         line 0: warning: Skipping data file with no valid points
+
+gnuplot> plot "throughput_dest.txt" using 1:2 wit2 + anterior;
 		anterior = contadornP[$1];
 		total = total + $2;
 	}
@@ -699,6 +701,7 @@ echo -e "\n\tECDF generado!"
 
 
 ######APARTADO 8 (Ancho de Banda en bps)
+#pruebo a cambiar dir mac 00:11:88:CC:33:F8
 
 echo -e "\n##### APARTADO 8: Ancho de Banda (bps) #####\n"
 
@@ -723,10 +726,10 @@ unset label
 unset key
 set term png
 set output "./plots/throughput_source.png"
-plot "throughput_source.txt" using 1:2 with steps
+plot "throughput_source.txt" using 1:2 with lines
 EOF
 
-echo -e "\n\t Grafica generada!";
+echo -e "\n\tGrafica generada!";
 
 echo -e "\n\t*Generando grafica de Ancho de Banda. Direccion MAC Dest =  00:11:88:CC:33:F8"
 awk 'BEGIN{ FS = "\t";}
@@ -749,15 +752,10 @@ unset label
 unset key
 set term png
 set output "./plots/throughput_dest.png"
-plot "throughput_dest.txt" using 1:2 with steps
+plot "throughput_dest.txt" using 1:2 with lines
 EOF
 
-echo -e "\n\t Grafica generada!";
+echo -e "\n\tGrafica generada!";
 
 rm crearCDF
-#rm *.txt
-
-
-
-
-
+rm *.txt
