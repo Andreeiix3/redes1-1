@@ -21,28 +21,30 @@
 #Compilacion del fichero .c para la creación de ECDF (COMPROBAR EN MAQUINA VIRTUAL) 
 gcc crearCDF.c -o crearCDF
 
-#aqui podemos poner un if to guapo.
-
 tshark -r trazap3.pcap -T fields -e frame.len -e eth.type -e vlan.etype -e ip.src -e ip.dst -e tcp.srcport -e tcp.dstport -e udp.srcport -e udp.dstport -e eth.src -e eth.dst -e ip.len -e frame.time_relative -e ip.proto > datos.txt 
 
 ######APARTADO 1 (PORCENTAJE DE PAQUETES IP)
 echo -e "##### APARTADO 1: PORCENTAJE DE PAQUETES IP #####\n"
 awk 'BEGIN{FS="\t";}
-	{
-	if(($2 == 2048)||($3 == 2048)){
-		n_ip = n_ip + 1;
-		if($14 == 6)
-			n_tcp = n_tcp + 1;
-		if($14 == 17)
-			n_udp = n_udp + 1;
-	}	
+{	
+	if (($2 == 2048)||($3 == 2048)){
+ 		n_ip = n_ip + 1;
+ 		if($14 == 6)
+ 			n_tcp = n_tcp + 1;
+ 		if($14 == 17)
+ 			n_udp = n_udp + 1;
+ 	}	
 }
 END {
-	data = n_ip/NR
+
+	data = n_ip/NR;
+	tcp = n_tcp/n_ip*100;
+	udp = n_udp/n_ip*100;
     printf "\t*El porcentaje de paquetes IP es  %.4f %%\n", 100*data;
 	print "\t De los cuales:";
-	print "\t\t*El " n_tcp/n_ip*100 "% son TCP";
-	print "\t\t*El " n_udp/n_ip*100 "% son UDP";
+	printf "\t\t*El %.4f %% son TCP", tcp;
+	printf "\t\t*El  %.4f %% son UDP", udp;
+	printf "\t\t*El  %.4f %% son OTROS", 100-tcp-udp; 
 	printf "\t*El porcentaje de paquetes NO-IP es %.4f %%\n", 100*(1-data);
 	
 }' datos.txt
@@ -528,7 +530,7 @@ END {
 
 gnuplot << EOF
 set title "Tiempo entre llegadas de paquetes TCP (Nivel 3). IP Source = 71.166.7.216"
-set xlabel "Tamano paquetes (bytes)"
+set xlabel "Tiempo entre llegadas (segundos)"
 set logscale x
 set ylabel "Probabilidad"
 unset label
@@ -579,7 +581,7 @@ END {
 
 gnuplot << EOF
 set title "Tiempo entre llegadas de paquetes TCP (Nivel 3). IP Dest = 71.166.7.216"
-set xlabel "Tamano paquetes (bytes)"
+set xlabel "Tiempo entre llegadas (segundos)"
 set logscale x
 set ylabel "Probabilidad"
 unset label
@@ -635,7 +637,7 @@ echo -e "\n\tAtencion, no hay ningun paquete que satisfaga el filtro. No se pued
 
 #gnuplot << EOF
 #set title "Tiempo entre llegadas de paquetes UDP (Nivel 3). Puerto #UDP Source = 4939"
-#set xlabel "Tamano paquetes (bytes)"
+set xlabel "Tiempo entre llegadas (segundos)"
 #set ylabel "Probabilidad"
 #unset label
 #unset key
@@ -685,7 +687,7 @@ END {
 
 gnuplot << EOF
 set title "Tiempo entre llegadas de paquetes UDP (Nivel 3). Puerto UDP Dest = 4939"
-set xlabel "Tamano paquetes (bytes)"
+set xlabel "Tiempo entre llegadas (segundos)"
 set logscale x 
 set ylabel "Probabilidad"
 unset label
@@ -718,8 +720,8 @@ END {
 
 gnuplot << EOF
 set title "Ancho de Banda. Dir MAC Source = 00:11:88:CC:33:F8"
-set xlabel "Tamano paquetes (bytes)"
-set ylabel "Probabilidad"
+set xlabel "Tiempo (segundos)"
+set ylabel "Ancho de Banda(Bits per second)"
 unset label
 unset key
 set term png
@@ -744,8 +746,8 @@ END {
 
 gnuplot << EOF
 set title "Ancho de Banda. Dir MAC Dest = 00:11:88:CC:33:F8"
-set xlabel "Tamano paquetes (bytes)"
-set ylabel "Probabilidad"
+set xlabel "Tiempo (segundos)"
+set ylabel "Ancho de Banda(Bits per second)"
 unset label
 unset key
 set term png
@@ -756,4 +758,4 @@ EOF
 echo -e "\n\tGrafica generada!";
 
 rm crearCDF
-#rm *.txt
+rm *.txt
