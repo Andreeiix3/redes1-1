@@ -200,7 +200,7 @@ echo -e "\n##### APARTADO 3: ECDF Tamanos a nivel 2 #####\n"
 #ECDF de tamaño paquetes a nivel 2. MAC Source.
 #Filtro MAC = 00:11:88:CC:33:F8.
 
-echo -e "\t*Generando ECDF de tamaño de paquetes a nivel 2. MAC Source.\n\t\tFiltro MAC = 00:11:88:CC:33:F8"
+echo -e "\t*Generando ECDF de tamaño de paquetes a nivel 2 Source y Dest.\n\t\tFiltro MAC = 00:11:88:CC:33:F8"
 awk 'BEGIN{ FS = "\t";}
 {	if($10 == "00:11:88:cc:33:f8"){
 		contadornP[$1] = contadornP[$1] + 1;
@@ -231,24 +231,9 @@ END {
 	}
 }' salida.txt | sort -n > eth_mac_sourceECDF.txt
 
-gnuplot << EOF
-set title "ECDF Tamano paquetes a nivel 2. MAC Source = 00:11:88:CC:33:F8"
-set xlabel "Tamano paquetes (bytes)"
-set ylabel "Probabilidad"
-unset label
-unset key
-set term png
-set output "./plots/tamanio_mac_source.png"
-plot "eth_mac_sourceECDF.txt" using 1:2 with steps
-EOF
-
-
-echo -e "\n\tECDF generado!"
-
 #ECDF de tamaño paquetes a nivel 2. MAC Dest.
 #Filtro MAC = 00:11:88:CC:33:F8.
 
-echo -e "\n\t*Generando ECDF de tamaño de paquetes a nivel 2. MAC Dest.\n\t\tFiltro MAC = 00:11:88:CC:33:F8"
 awk 'BEGIN{ FS = "\t";}
 {	if($11 == "00:11:88:cc:33:f8"){
 		contadornP[$1] = contadornP[$1] + 1;
@@ -281,14 +266,14 @@ END {
 
 
 gnuplot << EOF
-set title "ECDF Tamano paquetes a nivel 2. MAC Dest = 00:11:88:CC:33:F8"
+set title "ECDF Tamano paquetes a nivel 2. MAC = 00:11:88:CC:33:F8"
 set xlabel "Tamano paquetes (bytes)"
 set ylabel "Probabilidad"
 unset label
 unset key
 set term png
-set output "./plots/tamanio_mac_dest.png"
-plot "eth_mac_destECDF.txt" using 1:2 with steps
+set output "./plots/tamanio_mac.png"
+plot "eth_mac_destECDF.txt" using 1:2 title 'Dest' with steps, "eth_mac_sourceECDF.txt" using 1:2 title 'Source' with steps
 EOF
 
 echo -e "\n\tECDF generado!"
@@ -297,7 +282,7 @@ echo -e "\n\tECDF generado!"
 #Filtro TCP = 80.
 
 echo -e "\n##### APARTADO 4: ECDF Tamanos de paquetes HTTP a nivel 3 #####\n"
-echo -e "\t*Generando ECDF de tamaño paquetes HTTP a nivel 3. TCP Source.\n\t\tFiltro TCP = 80"
+echo -e "\t*Generando ECDF de tamaño paquetes HTTP a nivel 3.\n\t\tFiltro TCP = 80"
 awk 'BEGIN{ FS = "\t";}
 {	if($6 == 80){
 		contadornP[$12] = contadornP[$12] + 1;
@@ -329,24 +314,10 @@ END {
 }' salida.txt | sort -n > http_tcp_sourceECDF.txt
 
 
-gnuplot << EOF
-set title "ECDF Tamano paquetes HTTP a nivel 3. TCP Source = 80"
-set xlabel "Tamano paquetes (bytes)"
-set ylabel "Probabilidad"
-unset label
-unset key
-set term png
-set output "./plots/tamanio_http_source.png"
-plot "http_tcp_sourceECDF.txt" using 1:2 with steps
-EOF
-
-echo -e "\n\tECDF generado!"
-
 
 #ECDF de tamaño paquetes HTTP a nivel 3. TCP Dest.
 #Filtro TCP = 80.
 
-echo -e "\n\t*Generando ECDF de tamaño paquetes HTTP a nivel 3. TCP Dest.\n\t\tFiltro TCP = 80"
 awk 'BEGIN{ FS = "\t";}
 {	if($7 == 80){
 		contadornP[$12] = contadornP[$12] + 1;
@@ -385,8 +356,8 @@ set ylabel "Probabilidad"
 unset label
 unset key
 set term png
-set output "./plots/tamanio_http_dest.png"
-plot "http_tcp_destECDF.txt" using 1:2 with steps
+set output "./plots/tamanio_http.png"
+plot "http_tcp_destECDF.txt" using 1:2 title 'Dest' with steps, "http_tcp_sourceECDF.txt" using 1:2 title 'Source' with steps
 EOF
 
 echo -e "\n\tECDF generado!"
@@ -397,7 +368,7 @@ echo -e "\n##### APARTADO 5: ECDF Tamanos de paquetes DNS a nivel 3 #####\n"
 #ECDF de tamaño paquetes DNS nivel 3. UDP Source.
 #Filtro UDP = 53.
 
-echo -e "\t*Generando ECDF de tamaño paquetes DNS a nivel 3. UDP Source.\n\t\tFiltro UDP = 53"
+echo -e "\t*Generando ECDF de tamaño paquetes DNS a nivel 3.\n\t\tFiltro UDP = 53"
 awk 'BEGIN{ FS = "\t";}
 {	if($8 == 53){
 		contadornP[$12] = contadornP[$12] + 1;
@@ -427,20 +398,6 @@ END {
 		print valor "\t" contadornP[valor]/total;
 	}
 }' salida.txt | sort -n > dns_udp_sourceECDF.txt
-
-
-gnuplot << EOF
-set title "ECDF Tamano paquetes DNS a nivel 3. UDP Source = 53"
-set xlabel "Tamano paquetes (bytes)"
-set ylabel "Probabilidad"
-unset label
-unset key
-set term png
-set output "./plots/tamanio_dns_source.png"
-plot "dns_udp_sourceECDF.txt" using 1:2 with steps
-EOF
-
-echo -e "\n\tECDF generado!"
 
 
 #ECDF de tamaño paquetes DNS nivel 3. UDP Dest.
@@ -484,8 +441,8 @@ set ylabel "Probabilidad"
 unset label
 unset key
 set term png
-set output "./plots/tamanio_dns_dest.png"
-plot "dns_udp_destECDF.txt" using 1:2 with steps
+set output "./plots/tamanio_dns.png"
+plot "dns_udp_destECDF.txt" using 1:2 title 'Dest' with steps, "dns_udp_sourceECDF.txt" using 1:2 title 'Source' with steps
 EOF
 
 echo -e "\n\tECDF generado!"
@@ -495,7 +452,7 @@ echo -e "\n##### APARTADO 6: ECDF Interarrival Time de flujo TCP #####\n"
 #ECDF de tiempo entre llegadas de paquetes TCP a nivel 3. IP Source.
 #Filtro IP = 71.166.7.216. Protocolo TCP/IP = 0x06
 
-echo -e "\t*Generando ECDF de tiempo entre llegadas de paquetes TCP a nivel 3. IP Source.\n\t\tFiltro IP = 71.166.7.216. Protocolo TCP/IP = 0x06"
+echo -e "\t*Generando ECDF de tiempo entre llegadas de paquetes TCP a nivel 3.\n\t\tFiltro IP = 71.166.7.216. Protocolo TCP/IP = 0x06"
 awk 'BEGIN{ FS = "\t";}
 {	if($4 == "71.166.7.216" && $14 == 6){
 		tiempo_actual = $13 - tiempo_anterior;
@@ -528,24 +485,11 @@ END {
 	}
 }' salida.txt | sort -n > time_tcp_sourceECDF.txt
 
-gnuplot << EOF
-set title "Tiempo entre llegadas de paquetes TCP (Nivel 3). IP Source = 71.166.7.216"
-set xlabel "Tiempo entre llegadas (segundos)"
-set logscale x
-set ylabel "Probabilidad"
-unset label
-unset key
-set term png
-set output "./plots/interarrivaltime_tcp_source.png"
-plot "time_tcp_sourceECDF.txt" using 1:2 with steps
-EOF
-
-echo -e "\n\tECDF generado!"
 
 #ECDF de tiempo entre llegadas de paquetes TCP a nivel 3. IP Dest.
 #Filtro IP = 71.166.7.216. Protocolo TCP/IP = 0x06
 
-echo -e "\n\t*Generando ECDF de tiempo entre llegadas de paquetes TCP a nivel 3. IP Dest.\n\t\tFiltro IP = 71.166.7.216. Protocolo TCP/IP = 0x06"
+
 
 awk 'BEGIN{ FS = "\t";}
 {	if($5 == "71.166.7.216" && $14 == 6){
@@ -587,8 +531,8 @@ set ylabel "Probabilidad"
 unset label
 unset key
 set term png
-set output "./plots/interarrivaltime_tcp_dest.png"
-plot "time_tcp_destECDF.txt" using 1:2 with steps
+set output "./plots/interarrivaltime_tcp.png"
+plot "time_tcp_destECDF.txt" using 1:2 title 'Dest' with steps, "time_tcp_sourceECDF.txt" using 1:2 title 'Source' with steps
 EOF
 
 echo -e "\n\tECDF generado!"
@@ -599,7 +543,7 @@ echo -e "\n##### APARTADO 7: ECDF Interarrival Time de flujo UDP #####\n"
 #ECDF de tiempo entre llegadas de paquetes UDP a nivel 3. UDP Source.
 #Filtro UDP = 4939
 
-echo -e "\t*Generando ECDF de tiempo entre llegadas de paquetes UDP a nivel 3. UDP Source.\n\t\tFiltro UDP = 4939"
+echo -e "\t*Generando ECDF de tiempo entre llegadas de paquetes UDP a nivel 3.UDP Source.\n\t\tFiltro UDP = 4939"
 
 awk 'BEGIN{ FS = "\t";}
 {	if($8 == 4939){
@@ -637,7 +581,7 @@ echo -e "\n\tAtencion, no hay ningun paquete que satisfaga el filtro. No se pued
 
 #gnuplot << EOF
 #set title "Tiempo entre llegadas de paquetes UDP (Nivel 3). Puerto #UDP Source = 4939"
-set xlabel "Tiempo entre llegadas (segundos)"
+#set xlabel "Tiempo entre llegadas (segundos)"
 #set ylabel "Probabilidad"
 #unset label
 #unset key
@@ -705,11 +649,11 @@ echo -e "\n\tECDF generado!"
 
 echo -e "\n##### APARTADO 8: Ancho de Banda (bps) #####\n"
 
-echo -e "\n\t*Generando grafica de Ancho de Banda. Direccion MAC Src =  00:11:88:CC:33:F8"
+echo -e "\n\t*Generando grafica de Ancho de Banda. Direccion MAC =  00:11:88:CC:33:F8"
 
 awk 'BEGIN{ FS = "\t";}
 {	if($10 == "00:11:88:cc:33:f8"){
-		contadornP[int($13)] = $1 * 8;
+		contadornP[int($13)] = contadornP[int($13)] + $1 * 8;
 	}
 }
 END {
@@ -718,23 +662,11 @@ END {
 	}
 }' datos.txt | sort -n > throughput_source.txt
 
-gnuplot << EOF
-set title "Ancho de Banda. Dir MAC Source = 00:11:88:CC:33:F8"
-set xlabel "Tiempo (segundos)"
-set ylabel "Ancho de Banda(Bits per second)"
-unset label
-unset key
-set term png
-set output "./plots/throughput_source.png"
-plot "throughput_source.txt" using 1:2 with lines
-EOF
 
-echo -e "\n\tGrafica generada!";
 
-echo -e "\n\t*Generando grafica de Ancho de Banda. Direccion MAC Dest =  00:11:88:CC:33:F8"
 awk 'BEGIN{ FS = "\t";}
 {	if($11 == "00:11:88:cc:33:f8"){
-		contadornP[int($13)] = $1 * 8;
+		contadornP[int($13)] = contadornP[int($13)] + $1 * 8;
 	}
 }
 END {
@@ -751,11 +683,11 @@ set ylabel "Ancho de Banda(Bits per second)"
 unset label
 unset key
 set term png
-set output "./plots/throughput_dest.png"
-plot "throughput_dest.txt" using 1:2 with lines
+set output "./plots/throughput.png"
+plot "throughput_dest.txt" using 1:2 title 'Dest' with lines, "throughput_source.txt" using 1:2 title 'Source' with lines
 EOF
 
 echo -e "\n\tGrafica generada!";
 
 rm crearCDF
-rm *.txt
+#rm *.txt
