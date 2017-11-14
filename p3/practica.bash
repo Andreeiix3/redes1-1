@@ -218,9 +218,7 @@ END {
 
 awk 'BEGIN{ FS = "\t";}
 {	if($1 != null){
-		contadornP[$1] = $         line 0: warning: Skipping data file with no valid points
-
-gnuplot> plot "throughput_dest.txt" using 1:2 wit2 + anterior;
+		contadornP[$1] = $2 + anterior;        
 		anterior = contadornP[$1];
 		total = total + $2;
 	}
@@ -758,4 +756,4 @@ EOF
 echo -e "\n\tGrafica generada!";
 
 rm crearCDF
-rm *.txt
+#rm *.txt
