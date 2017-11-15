@@ -23,8 +23,11 @@ gcc crearCDF.c -o crearCDF
 #Creacion del directorio de las graficas
 mkdir -p plots
 
-
-tshark -r trazap3.pcap -T fields -e frame.len -e eth.type -e vlan.etype -e ip.src -e ip.dst -e tcp.srcport -e tcp.dstport -e udp.srcport -e udp.dstport -e eth.src -e eth.dst -e ip.len -e frame.time_relative -e ip.proto > datos.txt 
+if ! [ -a datos.dat ]
+then
+	tshark -r trazap3.pcap -T fields -e frame.len -e eth.type -e vlan.etype -e ip.src -e ip.dst -e tcp.srcport -e tcp.dstport -e udp.srcport -e udp.dstport -e eth.src -e eth.dst -e ip.len -e frame.time_relative -e ip.proto > datos.dat
+	.
+fi
 
 ######APARTADO 1 (PORCENTAJE DE PAQUETES IP)
 echo -e "##### APARTADO 1: PORCENTAJE DE PAQUETES IP #####\n"
@@ -34,27 +37,27 @@ bash porcentajes.bash
 ######APARTADO 2 (TOP 10 IP/PUERTOS-ORIGEN/DESTINO-BYTES/PAQUETES)
 echo -e "\n##### APARTADO 2: TOPs 10 #####"
 
-bash top10.bash "datos.txt" "1" "4" "Direcciones IP Source"
+bash top10.bash "datos.dat" "1" "4" "Direcciones IP Source"
 
 #Direcciones IP dest 
   
-bash top10.bash "datos.txt" "1" "5" "Direcciones IP Dest"
+bash top10.bash "datos.dat" "1" "5" "Direcciones IP Dest"
 
 #Puertos TCP Source
 
-bash top10.bash "datos.txt" "1" "6" "Puertos TCP Source"
+bash top10.bash "datos.dat" "1" "6" "Puertos TCP Source"
 
 #Puertos TCP Dest
 
-bash top10.bash "datos.txt" "1" "7" "Puertos TCP Dest"
+bash top10.bash "datos.dat" "1" "7" "Puertos TCP Dest"
 
 #Puertos UDP Source
 
-bash top10.bash "datos.txt" "1" "8" "Puertos UDP Source"
+bash top10.bash "datos.dat" "1" "8" "Puertos UDP Source"
 
 #Puertos UDP Dest
 
-bash top10.bash "datos.txt" "1" "9" "Puertos UDP Dest"
+bash top10.bash "datos.dat" "1" "9" "Puertos UDP Dest"
 
 
 ######APARTADO 3 (ECDF Tamanos a nivel 2)
@@ -65,9 +68,9 @@ echo -e "\n##### APARTADO 3: ECDF Tamanos a nivel 2 #####\n"
 
 echo -e "\t*Generando ECDF de tamaño de paquetes a nivel 2 (Tanto origen como destino).\n\t\tDireccion MAC empleada: 00:11:88:CC:33:F8"
 
-bash ecdfdata.bash "datos.txt" "1" "eth_mac_sourceECDF.txt" "10" "00:11:88:cc:33:f8"
+bash ecdfdata.bash "datos.dat" "1" "eth_mac_sourceECDF.txt" "10" "00:11:88:cc:33:f8"
 
-bash ecdfdata.bash "datos.txt" "1" "eth_mac_destECDF.txt" "11" "00:11:88:cc:33:f8"
+bash ecdfdata.bash "datos.dat" "1" "eth_mac_destECDF.txt" "11" "00:11:88:cc:33:f8"
 
 
 gnuplot << EOF
@@ -90,10 +93,10 @@ echo -e "\n##### APARTADO 4: ECDF Tamanos de paquetes HTTP a nivel 3 #####\n"
 echo -e "\t*Generando ECDF de tamaño paquetes HTTP a nivel 3. (Tanto Src como Dest)\n\t\tFiltro TCP = 80"
 
 #Src
-bash ecdfdata.bash "datos.txt" "12" "http_tcp_sourceECDF.txt" "6" "80"
+bash ecdfdata.bash "datos.dat" "12" "http_tcp_sourceECDF.txt" "6" "80"
 
 #Dest
-bash ecdfdata.bash "datos.txt" "12" "http_tcp_destECDF.txt" "7" "80"
+bash ecdfdata.bash "datos.dat" "12" "http_tcp_destECDF.txt" "7" "80"
 
 #ECDF de tamaño paquetes HTTP a nivel 3. TCP Dest.
 #Filtro TCP = 80.
@@ -119,10 +122,10 @@ echo -e "\n##### APARTADO 5: ECDF Tamanos de paquetes DNS a nivel 3 #####\n"
 echo -e "\t*Generando ECDF de tamaño paquetes DNS a nivel 3(Tanto Src como Dest).\n\t\tFiltro UDP = 53"
 
 #Src
-bash ecdfdata.bash "datos.txt" "12" "dns_udp_sourceECDF.txt" "8" "53"
+bash ecdfdata.bash "datos.dat" "12" "dns_udp_sourceECDF.txt" "8" "53"
 
 #Dest
-bash ecdfdata.bash "datos.txt" "12" "dns_udp_destECDF.txt" "9" "53"
+bash ecdfdata.bash "datos.dat" "12" "dns_udp_destECDF.txt" "9" "53"
 
 #Plotting
 gnuplot << EOF
@@ -146,10 +149,10 @@ echo -e "\n##### APARTADO 6: ECDF Interarrival Time de flujo TCP #####\n"
 echo -e "\t*Generando ECDF de tiempo entre llegadas de paquetes TCP a nivel 3(Tanto Src como Dest).\n\t\tFiltro IP = 71.166.7.216. Protocolo TCP/IP = 0x06"
 
 #Src
-bash ecdftimedata.bash "datos.txt" "13" "time_tcp_sourceECDF.txt" "4" "71.166.7.216" "14" "6"
+bash ecdftimedata.bash "datos.dat" "13" "time_tcp_sourceECDF.txt" "4" "71.166.7.216" "14" "6"
 
 #Dst
-bash ecdftimedata.bash "datos.txt" "13" "time_tcp_destECDF.txt" "5" "71.166.7.216" "14" "6"
+bash ecdftimedata.bash "datos.dat" "13" "time_tcp_destECDF.txt" "5" "71.166.7.216" "14" "6"
 
 #Plotting
 gnuplot << EOF
@@ -174,11 +177,11 @@ echo -e "\n##### APARTADO 7: ECDF Interarrival Time de flujo UDP #####\n"
 echo -e "\t*Generando ECDF de tiempo entre llegadas de paquetes UDP a nivel 3.(Tanto UDP Source como UDP Dest).\n\t\tFiltro UDP = 4939"
 
 #Src
-bash ecdftimedata.bash "datos.txt" "13" "time_udp_sourceECDF.txt" "8" "4939" "14" "17"
+bash ecdftimedata.bash "datos.dat" "13" "time_udp_sourceECDF.txt" "8" "4939" "14" "17"
 echo -e "\n\tAtencion, no hay ningun paquete que satisfaga el filtro. No se puede generar el ECDF de UDP Src."
 
 #Dst
-bash ecdftimedata.bash "datos.txt" "13" "time_udp_destECDF.txt" "9" "4939" "14" "17"
+bash ecdftimedata.bash "datos.dat" "13" "time_udp_destECDF.txt" "9" "4939" "14" "17"
 
 #Plotting
 gnuplot << EOF
@@ -202,29 +205,9 @@ echo -e "\n##### APARTADO 8: Ancho de Banda (bps) #####\n"
 
 echo -e "\n\t*Generando grafica de Ancho de Banda. Direccion MAC =  00:11:88:CC:33:F8"
 
-awk 'BEGIN{ FS = "\t";}
-{	if($10 == "00:11:88:cc:33:f8"){
-		contadornP[int($13)] = contadornP[int($13)] + $1 * 8;
-	}
-}
-END {
-	for (valor in contadornP) {
-		printf "%f\t%f\n", valor, contadornP[valor];
-	}
-}' datos.txt | sort -n > throughput_source.txt
+bash throughput.bash "datos.dat" "13" "throughput_source.txt" "10" "00:11:88:cc:33:f8" "1"
 
-
-
-awk 'BEGIN{ FS = "\t";}
-{	if($11 == "00:11:88:cc:33:f8"){
-		contadornP[int($13)] = contadornP[int($13)] + $1 * 8;
-	}
-}
-END {
-	for (valor in contadornP) {
-		printf "%f\t%f\n", valor, contadornP[valor];
-	}
-}' datos.txt | sort -n > throughput_dest.txt
+bash throughput.bash "datos.dat" "13" "throughput_dest.txt" "11" "00:11:88:cc:33:f8" "1"
 
 
 gnuplot << EOF
