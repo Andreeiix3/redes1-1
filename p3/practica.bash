@@ -20,6 +20,9 @@
 
 #Compilacion del fichero .c para la creación de ECDF (COMPROBAR EN MAQUINA VIRTUAL) 
 gcc crearCDF.c -o crearCDF
+#Creacion del directorio de las graficas
+mkdir plots
+
 
 tshark -r trazap3.pcap -T fields -e frame.len -e eth.type -e vlan.etype -e ip.src -e ip.dst -e tcp.srcport -e tcp.dstport -e udp.srcport -e udp.dstport -e eth.src -e eth.dst -e ip.len -e frame.time_relative -e ip.proto > datos.txt 
 
@@ -50,7 +53,7 @@ END {
 }' datos.txt
 
 ######APARTADO 2 (TOP 10 IP/PUERTOS-ORIGEN/DESTINO-BYTES/PAQUETES)
-echo -e "\n ##### APARTADO 2: TOPs 10 #####"
+echo -e "\n##### APARTADO 2: TOPs 10 #####"
 
 #Direcciones IP origen nP = numero paquetes
 #					   nB = numero bytes
@@ -74,14 +77,6 @@ sort -t$'\t' -n -r -k2  aux.txt| head -n 10
 echo -e "\n\t*TOP 10 Direcciones IP Source (Orden: Numero de bytes)\n"
 echo -e "Formato: Direccion IP//Numero de Paquetes//Numero de bytes\n"  
 sort -t$'\t' -n -r -k3  aux.txt| head -n 10
-
-#flags de Sort:
-#-t fija el separador que distingue campos, como hemos impreso con \t pues pongo \t
-#-n orden numerico
-#-r reverse (orden inverso)
-#-k? k de Kampo(o Kolumna), y el numero de la que quieras
-
-
 
 #Direcciones IP dest nP = numero paquetes
 #					 nB = numero bytes
@@ -197,10 +192,11 @@ sort -t$'\t' -n -b -r -k3  aux.txt| head -n 10
 
 
 echo -e "\n##### APARTADO 3: ECDF Tamanos a nivel 2 #####\n"
-#ECDF de tamaño paquetes a nivel 2. MAC Source.
-#Filtro MAC = 00:11:88:CC:33:F8.
 
-echo -e "\t*Generando ECDF de tamaño de paquetes a nivel 2 Source y Dest.\n\t\tFiltro MAC = 00:11:88:CC:33:F8"
+
+#ECDF de tamaño paquetes a nivel 2. 
+
+echo -e "\t*Generando ECDF de tamaño de paquetes a nivel 2 (Tanto origen como destino).\n\t\tDireccion MAC empleada: 00:11:88:CC:33:F8"
 awk 'BEGIN{ FS = "\t";}
 {	if($10 == "00:11:88:cc:33:f8"){
 		contadornP[$1] = contadornP[$1] + 1;
@@ -246,8 +242,6 @@ END {
 }' datos.txt > aux.txt
 
 
-#LLamada a crearCDF
-
 ./crearCDF
 
 
@@ -268,12 +262,11 @@ END {
 gnuplot << EOF
 set title "ECDF Tamano paquetes a nivel 2. MAC = 00:11:88:CC:33:F8"
 set xlabel "Tamano paquetes (bytes)"
-set ylabel "Probabilidad"
+set ylabel "Probabilidad acumulada (P(x≤t))"
 unset label
-unset key
 set term png
 set output "./plots/tamanio_mac.png"
-plot "eth_mac_destECDF.txt" using 1:2 title 'Dest' with steps, "eth_mac_sourceECDF.txt" using 1:2 title 'Source' with steps
+plot "eth_mac_destECDF.txt" using 1:2 title 'MAC = Dest' with steps, "eth_mac_sourceECDF.txt" using 1:2 title 'MAC = Source' with steps
 EOF
 
 echo -e "\n\tECDF generado!"
@@ -350,14 +343,13 @@ END {
 
 
 gnuplot << EOF
-set title "ECDF Tamano paquetes HTTP a nivel 3. TCP Dest = 80"
+set title "ECDF Tamano paquetes HTTP a nivel 3. TCP Port = 80"
 set xlabel "Tamano paquetes (bytes)"
-set ylabel "Probabilidad"
+set ylabel "Probabilidad acumulada (P(x≤t))"
 unset label
-unset key
 set term png
 set output "./plots/tamanio_http.png"
-plot "http_tcp_destECDF.txt" using 1:2 title 'Dest' with steps, "http_tcp_sourceECDF.txt" using 1:2 title 'Source' with steps
+plot "http_tcp_destECDF.txt" using 1:2 title 'TCP Port = Dest' with steps, "http_tcp_sourceECDF.txt" using 1:2 title 'TCP Port = Source' with steps
 EOF
 
 echo -e "\n\tECDF generado!"
@@ -435,14 +427,13 @@ END {
 }' salida.txt | sort -n > dns_udp_destECDF.txt
 
 gnuplot << EOF
-set title "ECDF Tamano paquetes DNS a nivel 3. UDP Dest = 53"
+set title "ECDF Tamano paquetes DNS a nivel 3. UDP Port = 53"
 set xlabel "Tamano paquetes (bytes)"
-set ylabel "Probabilidad"
+set ylabel "Probabilidad acumulada (P(x≤t))"
 unset label
-unset key
 set term png
 set output "./plots/tamanio_dns.png"
-plot "dns_udp_destECDF.txt" using 1:2 title 'Dest' with steps, "dns_udp_sourceECDF.txt" using 1:2 title 'Source' with steps
+plot "dns_udp_destECDF.txt" using 1:2 title 'UDP Port = Dest' with steps, "dns_udp_sourceECDF.txt" using 1:2 title 'UDP Port = Source' with steps
 EOF
 
 echo -e "\n\tECDF generado!"
@@ -524,15 +515,14 @@ END {
 }' salida.txt | sort -n > time_tcp_destECDF.txt
 
 gnuplot << EOF
-set title "Tiempo entre llegadas de paquetes TCP (Nivel 3). IP Dest = 71.166.7.216"
+set title "Tiempo entre llegadas de paquetes TCP (Nivel 3). IP Dir = 71.166.7.216"
 set xlabel "Tiempo entre llegadas (segundos)"
 set logscale x
-set ylabel "Probabilidad"
+set ylabel "Probabilidad acumulada (P(x≤t))"
 unset label
-unset key
 set term png
 set output "./plots/interarrivaltime_tcp.png"
-plot "time_tcp_destECDF.txt" using 1:2 title 'Dest' with steps, "time_tcp_sourceECDF.txt" using 1:2 title 'Source' with steps
+plot "time_tcp_destECDF.txt" using 1:2 title 'IP Dest = IP Dir' with steps, "time_tcp_sourceECDF.txt" using 1:2 title 'IP Source = IP Dir' with steps
 EOF
 
 echo -e "\n\tECDF generado!"
@@ -579,19 +569,6 @@ END {
 
 echo -e "\n\tAtencion, no hay ningun paquete que satisfaga el filtro. No se puede generar un ECDF."
 
-#gnuplot << EOF
-#set title "Tiempo entre llegadas de paquetes UDP (Nivel 3). Puerto #UDP Source = 4939"
-#set xlabel "Tiempo entre llegadas (segundos)"
-#set ylabel "Probabilidad"
-#unset label
-#unset key
-#set term png
-#set output "./plots/interarrivaltime_udp_source.png"
-#plot "time_udp_sourceECDF.txt" using 1:2 with steps
-#EOF
-#echo -e "\n\tECDF generado!"
-
-
 #ECDF de tiempo entre llegadas de paquetes UDP a nivel 3. UDP Dest.
 #Filtro UDP = 4939
 
@@ -630,15 +607,14 @@ END {
 }' salida.txt | sort -n > time_udp_destECDF.txt
 
 gnuplot << EOF
-set title "Tiempo entre llegadas de paquetes UDP (Nivel 3). Puerto UDP Dest = 4939"
+set title "Tiempo entre llegadas de paquetes UDP (Nivel 3)."
 set xlabel "Tiempo entre llegadas (segundos)"
 set logscale x 
-set ylabel "Probabilidad"
+set ylabel "Probabilidad acumulada (P(x≤t))"
 unset label
-unset key
 set term png
 set output "./plots/interarrivaltime_udp_dest.png"
-plot "time_udp_destECDF.txt" using 1:2 with steps
+plot "time_udp_destECDF.txt" using 1:2  title 'UDP Dest = 4939' with steps
 EOF
 
 echo -e "\n\tECDF generado!"
@@ -677,17 +653,27 @@ END {
 
 
 gnuplot << EOF
-set title "Ancho de Banda. Dir MAC Dest = 00:11:88:CC:33:F8"
+set title "Ancho de Banda. Dir MAC = 00:11:88:CC:33:F8"
 set xlabel "Tiempo (segundos)"
 set ylabel "Ancho de Banda(Bits per second)"
 unset label
-unset key
 set term png
 set output "./plots/throughput.png"
-plot "throughput_dest.txt" using 1:2 title 'Dest' with lines, "throughput_source.txt" using 1:2 title 'Source' with lines
+plot "throughput_dest.txt" using 1:2 title 'Eth Dest = Dir MAC' with lines, "throughput_source.txt" using 1:2 title 'Eth Source = Dir MAC' with lines
 EOF
+
+gnuplot << EOF
+set title "Ancho de Banda. Dir MAC = 00:11:88:CC:33:F8"
+set xlabel "Tiempo (segundos)"
+set ylabel "Ancho de Banda(Bits per second)"
+unset label
+set term png
+set output "./plots/throughputDestAmpliado.png"
+plot "throughput_dest.txt" using 1:2 title 'Eth Dest = Dir MAC' with lines
+EOF
+
 
 echo -e "\n\tGrafica generada!";
 
 rm crearCDF
-#rm *.txt
+rm *.txt
