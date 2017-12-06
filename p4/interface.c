@@ -125,7 +125,7 @@ printf("\t%"PRIu8".%"PRIu8".%"PRIu8".%"PRIu8"\n",retorno[0],retorno[1],retorno[2
 
 /****************************************************************************************
 * Nombre: obtenerMTUInterface								*
-* Descripcion: Devuelve en retorno la MTU del nivel anterio al fisco (enlace)		*
+* Descripcion: Devuelve en retorno la MTU del nivel anterior al fisico (enlace)		*
 * Argumentos: 										*
 *  -interface: la interface sobre la que se pregunta  					*
 *  -retorno: MTU en orden de hardware							*
