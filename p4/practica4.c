@@ -143,7 +143,7 @@ int main(int argc, char **argv){
 	//Leemos el tamano maximo de transmision del nivel de enlace
 	if(obtenerMTUInterface(interface, &MTU)==ERROR)
 		return ERROR;
-	
+	printf("\n");
 	//Descriptor de la interface de red donde inyectar trafico
 	if ((descr = pcap_open_live(interface,MTU+ETH_HLEN,0, 0, errbuf)) == NULL){
 		printf("Error: pcap_open_live(): %s %s %d.\n",errbuf,__FILE__,__LINE__);
@@ -398,12 +398,13 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 	/*Direccion IP Origen*/
 	if(obtenerIPInterface(interface, &aux8) == ERROR)
 		return ERROR;
-	aux32 = htons((uint32_t) aux8);
+	//No hace falta hacer htons porque la funcion a te la devuelve en orden de red
+	memcpy(datagrama+pos,&aux8,sizeof(uint32_t));
 	pos+=sizeof(uint32_t);
 	
 	/*Direccion IP Destino*/
-	
-
+	aux32 = htonl(*((uint32_t*) IP_destino));
+	memcpy(datagrama+pos,&aux32,sizeof(uint32_t));
 	pos+=sizeof(uint32_t);
 
 	/*Opciones y relleno todo a 0*/
@@ -524,7 +525,7 @@ uint8_t moduloETH(uint8_t* datagrama, uint64_t longitud, uint16_t* pila_protocol
 	//Almacenamos la salida por cuestiones de debugging [...]
 	//¿Donde la almacenamos? En un fichero I Guess
 
-	f = fopen("salida.txt", "r");
+	f = fopen("salida.txt", "w");
 	fprintf(f, "%s\n", trama);
 	fclose(f);
 
