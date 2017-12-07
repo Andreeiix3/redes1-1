@@ -85,8 +85,8 @@ uint8_t obtenerMACdeInterface(char* interface, uint8_t* retorno){
 	}
 	close(fd);
 	memcpy(retorno,ifr.ifr_hwaddr.sa_data,sizeof(uint8_t)*6);
-printf("Retorno obtenerMACdeInterface():\n");
-printf("\t%02"PRIx8":%02"PRIx8":%02"PRIx8":%02"PRIx8":%02"PRIx8":%02"PRIx8"\n",
+	printf("Retorno obtenerMACdeInterface():\n");
+	printf("\t%02"PRIx8":%02"PRIx8":%02"PRIx8":%02"PRIx8":%02"PRIx8":%02"PRIx8"\n",
           retorno[0],retorno[1],retorno[2],retorno[3],retorno[4],retorno[5]);
 	 return OK;
 }

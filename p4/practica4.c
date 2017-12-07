@@ -254,7 +254,7 @@ uint8_t moduloUDP(uint8_t* mensaje,uint64_t longitud, uint16_t* pila_protocolos,
 	uint16_t aux16;
 	uint32_t pos=0;
 	uint16_t protocolo_inferior=pila_protocolos[1];
-	char mensajeaux[longitud];
+	uint16_t* mensajeaux;
 	printf("modulo UDP(%"PRIu16") %s %d.\n",protocolo_inferior,__FILE__,__LINE__);
 
 	/*El campo longitud en UDP tiene 16 bits e indica el tamaño en bytes*/
@@ -272,6 +272,8 @@ uint8_t moduloUDP(uint8_t* mensaje,uint64_t longitud, uint16_t* pila_protocolos,
 	}
 
 	/*Copia el puerto de origen en su sitio del segmento en su sitio*/
+	if(obtenerPuertoOrigen(&puerto_origen)==ERROR)
+		return ERROR;
 	aux16=htons(puerto_origen);
 	memcpy(segmento+pos,&aux16,sizeof(uint16_t));
 	pos+=sizeof(uint16_t);
@@ -287,13 +289,19 @@ uint8_t moduloUDP(uint8_t* mensaje,uint64_t longitud, uint16_t* pila_protocolos,
 	pos+=sizeof(uint16_t);
 
 	/*Copia Checksum (todo a 0)*/
-	memcpy(segmento+pos,suma_control,sizeof(uint16_t));
+	memcpy(segmento+pos,&suma_control,sizeof(uint16_t));
 	pos+=sizeof(uint16_t);
 
 	/*ESTO DE AQUI ABAJO ESTA TREMENDAMENTE MAL*/
 	/*Copia de todo el segmento, el mensaje*/
-	mensajeaux = htons(mensaje);
+	mensajeaux = (uint16_t*) malloc (longitud*sizeof(uint8_t));
+	
+
+	*mensajeaux = htons(*((uint16_t*) mensaje));
+	
+
 	memcpy(segmento+pos, mensajeaux, longitud);
+	free (mensajeaux);
 	/*No sumamos pos de nuevo porque ya se hace en la llamada a la siguiente funcion*/
 
 	//Se llama al protocolo definido de nivel inferior a traves de los punteros registrados en la tabla de protocolos registrados
@@ -315,8 +323,9 @@ uint8_t moduloUDP(uint8_t* mensaje,uint64_t longitud, uint16_t* pila_protocolos,
 uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos,void *parametros){
 	uint8_t datagrama[IP_DATAGRAM_MAX]={0};
 	uint32_t aux32;
-	uint16_t aux16, longitud_ip, checksum;
+	uint16_t aux16;
 	uint8_t aux8;
+	uint8_t* checksum;
 	uint32_t pos=0,pos_control=0;
 	uint8_t IP_origen[IP_ALEN];
 	uint16_t protocolo_superior=pila_protocolos[0];
@@ -382,7 +391,7 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 	pos+=sizeof(uint8_t);
 
 	/*Direccion IP Origen*/
-	if(obtenerIPInterface(ipdatos., &aux8) == ERROR)
+	if(obtenerIPInterface(interface, &aux8) == ERROR)
 		return ERROR;
 	aux32 = htons((uint32_t) aux8);
 	pos+=sizeof(uint32_t);
@@ -393,15 +402,17 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 	pos+=sizeof(uint32_t);
 
 	/*Opciones y relleno todo a 0*/
-	aux32 = 0
+	aux32 = 0 ;
 	memcpy(datagrama+pos,&aux32,sizeof(uint32_t));
 	pos+=sizeof(uint32_t);
 
 	/*Ahora si se podria calcular el check sum*/
-	if(calcularChecksum(longitud + pos, datagrama, &checksum)==ERROR)
+	checksum = (uint8_t *) malloc (2*sizeof(uint8_t));
+	if(calcularChecksum(longitud + pos_control, datagrama, checksum)==ERROR)
 		return ERROR;
-	aux16 = htons(checksum);
+	aux16 = htons(*((uint16_t*)checksum));
 	memcpy(datagrama+pos,&aux16,sizeof(uint16_t));
+	free(checksum);
 
 	/*Fin de la cabecera*/
 	
@@ -415,18 +426,18 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 	if(obtenerMascaraInterface(interface, mascara) == ERROR)
 		return ERROR;
 
-	if(aplicarMascara(IP_origen, mascara, 32, IP_rango_origen) == ERROR)
+	if(aplicarMascara(IP_origen, mascara, IP_ALEN, IP_rango_origen) == ERROR)
 		return ERROR;
-	if(aplicarMascara(IP_destino, mascara, 32, IP_rango_destino) == ERROR)
+	if(aplicarMascara(IP_destino, mascara, IP_ALEN, IP_rango_destino) == ERROR)
 		return ERROR;
 
 	if((IP_rango_origen[1] == IP_rango_destino[1]) && (IP_rango_origen[2] == IP_rango_destino[2]) && (IP_rango_origen[3] == IP_rango_destino[3]) && (IP_rango_origen[4] == IP_rango_destino[4])){
 		/*ARP REQUEST*/
-		if(ARPrequest(interface, &ipdatos.IP_destino, &ipdatos.ETH_destino){
+		if(ARPrequest(interface, ipdatos.IP_destino, ipdatos.ETH_destino)){
 			return ERROR;
 		}
 	} else{
-		if(obtenerGateway(interface, &ipdatos.ETH_destino) == ERROR){
+		if(obtenerGateway(interface, ipdatos.ETH_destino) == ERROR){
 			return ERROR;
 		}
 
@@ -454,9 +465,9 @@ uint8_t moduloETH(uint8_t* datagrama, uint64_t longitud, uint16_t* pila_protocol
 	uint16_t aux16;
 	uint64_t aux64;
 	uint16_t protocolo_superior=pila_protocolos[0];
-	uint8_t* ETH_destino = ethdatos.ETH_destino;
+	uint8_t* ETH_destino;
 	uint8_t* ETH_origen;
-	Parametros ethdatos=*((Parametros*)parametros);
+	Parametros ethdatos =*((Parametros*)parametros);
 	
 	pila_protocolos++;
 	
@@ -471,18 +482,18 @@ uint8_t moduloETH(uint8_t* datagrama, uint64_t longitud, uint16_t* pila_protocol
 	/*Direccion Ethernet Destino*/
 
 	//Problema con los 48 buts de direccion mac, no son 64*/
-	aux64 = htons(ETH_destino);
+	aux64 = htons(*((uint16_t *) ETH_destino));
 	memcpy(trama+pos,&aux64,sizeof(uint64_t));
 	pos+=6;
 
 
 	/*Direccion Ethernet Origen*/
-
+	ETH_origen = (uint8_t*) malloc (ETH_ALEN*sizeof(uint8_t));
 	if(obtenerMACdeInterface(interface, ETH_origen)==ERROR){
 		return ERROR;
 	}
 
-	aux64 = htons(ETH_origen);
+	aux64 = htons(*((uint16_t *)ETH_origen));
 	memcpy(trama+pos,&aux64,sizeof(uint64_t));
 	pos+=sizeof(uint64_t);
 
@@ -501,7 +512,7 @@ uint8_t moduloETH(uint8_t* datagrama, uint64_t longitud, uint16_t* pila_protocol
 	//Almacenamos la salida por cuestiones de debugging [...]
 	//¿Donde la almacenamos? En un fichero I Guess
 
-	f = fopen(salida.txt, "r");
+	f = fopen("salida.txt", "r");
 	fprintf(f, "%s\n", trama);
 	fclose(f);
 
