@@ -128,15 +128,18 @@ int main(int argc, char **argv){
 		printf("Error: Fallo al capturar la senal SIGINT.\n");
 		return ERROR;
 	}
-		//Inicializamos las tablas de protocolos
+	
+	//Inicializamos las tablas de protocolos
 	if(inicializarPilaEnviar()==ERROR){
       	printf("Error leyendo desde stdin: %s %s %d.\n",errbuf,__FILE__,__LINE__);
 		return ERROR;
 	}
-		//Leemos el tamano maximo de transmision del nivel de enlace
+	
+	//Leemos el tamano maximo de transmision del nivel de enlace
 	if(obtenerMTUInterface(interface, &MTU)==ERROR)
 		return ERROR;
-		//Descriptor de la interface de red donde inyectar trafico
+	
+	//Descriptor de la interface de red donde inyectar trafico
 	if ((descr = pcap_open_live(interface,MTU+ETH_HLEN,0, 0, errbuf)) == NULL){
 		printf("Error: pcap_open_live(): %s %s %d.\n",errbuf,__FILE__,__LINE__);
 		return ERROR;
@@ -144,36 +147,59 @@ int main(int argc, char **argv){
 
 	datalink=(uint16_t)pcap_datalink(descr); //DLT_EN10MB==Ethernet
 
-		//Descriptor del fichero de salida pcap para debugging
+	//Descriptor del fichero de salida pcap para debugging
 	descr2=pcap_open_dead(datalink,MTU+ETH_HLEN);
 	pdumper=pcap_dump_open(descr2,fichero_pcap_destino);
 
-		//Formamos y enviamos el trafico, debe enviarse un unico segmento por llamada a enviar() aunque luego se traduzca en mas de un datagrama
-		//Primero un paquete UDP
-		//Definimos la pila de protocolos que queremos seguir
-	pila_protocolos[0]=UDP_PROTO; pila_protocolos[1]=IP_PROTO; pila_protocolos[2]=ETH_PROTO;
-		//Rellenamos los parametros necesario para enviar el paquete a su destinatario y proceso
-	Parametros parametros_udp; memcpy(parametros_udp.IP_destino,IP_destino_red,IP_ALEN); parametros_udp.puerto_destino=puerto_destino;
-		//Enviamos
+
+	/**************PARTE 1*********/
+
+
+	//Formamos y enviamos el trafico, debe enviarse un unico segmento por llamada a enviar() aunque luego se traduzca en mas de un datagrama
+	//Primero un paquete UDP
+	//Definimos la pila de protocolos que queremos seguir
+	pila_protocolos[0]=UDP_PROTO; 
+	pila_protocolos[1]=IP_PROTO; 
+	pila_protocolos[2]=ETH_PROTO;
+	
+	//Rellenamos los parametros necesario para enviar el paquete a su destinatario y proceso
+	Parametros parametros_udp; 
+	memcpy(parametros_udp.IP_destino,IP_destino_red,IP_ALEN); 
+	parametros_udp.puerto_destino=puerto_destino;
+	
+	//Enviamos los datos en data, que es lo que habiamos pasado como argumento
 	if(enviar((uint8_t*)data,strlen(data),pila_protocolos,&parametros_udp)==ERROR ){
 		printf("Error: enviar(): %s %s %d.\n",errbuf,__FILE__,__LINE__);
 		return ERROR;
 	}
-	else	cont++;
+	else cont++;
 
-	printf("Enviado mensaje %"PRIu64", almacenado en %s\n\n\n", cont,fichero_pcap_destino);
+	printf("Enviado mensaje %"PRIu64", UDP almacenado en %s\n\n\n", cont,fichero_pcap_destino);
 
-		//Luego, un paquete ICMP en concreto un ping
-	pila_protocolos[0]=ICMP_PROTO; pila_protocolos[1]=IP_PROTO; pila_protocolos[2]=0;
-	Parametros parametros_icmp; parametros_icmp.tipo=PING_TIPO; parametros_icmp.codigo=PING_CODE; memcpy(parametros_icmp.IP_destino,IP_destino_red,IP_ALEN);
+	
+	/**************PARTE 2*********/
+
+	//Luego, un paquete ICMP en concreto un ping
+	pila_protocolos[0]=ICMP_PROTO;
+	pila_protocolos[1]=IP_PROTO; 
+	pila_protocolos[2]=ETH_PROTO;
+	
+	Parametros parametros_icmp; 
+	parametros_icmp.tipo=PING_TIPO; 
+	parametros_icmp.codigo=PING_CODE; 
+	
+	// Los datos en el ICMP no son relevantes, se prueba con esta cadena
+	memcpy(parametros_icmp.IP_destino,IP_destino_red,IP_ALEN);
 	if(enviar((uint8_t*)"Probando a hacer un ping",strlen("Probando a hacer un ping"),pila_protocolos,&parametros_icmp)==ERROR ){
 		printf("Error: enviar(): %s %s %d.\n",errbuf,__FILE__,__LINE__);
 		return ERROR;
 	}
-	else	cont++;
+	else cont++;
+
+
 	printf("Enviado mensaje %"PRIu64", ICMP almacenado en %s\n\n", cont,fichero_pcap_destino);
 
-		//Cerramos descriptores
+	//Cerramos descriptores
 	pcap_close(descr);
 	pcap_dump_close(pdumper);
 	pcap_close(descr2);
@@ -193,8 +219,10 @@ int main(int argc, char **argv){
 ****************************************************************************************/
 
 uint8_t enviar(uint8_t* mensaje, uint64_t longitud,uint16_t* pila_protocolos,void *parametros){
+	
 	uint16_t protocolo=pila_protocolos[0];
-printf("Enviar(%"PRIu16") %s %d.\n",protocolo,__FILE__,__LINE__);
+	printf("Enviar(%"PRIu16") %s %d.\n",protocolo,__FILE__,__LINE__);
+	
 	if(protocolos_registrados[protocolo]==NULL){
 		printf("Protocolo %"PRIu16" desconocido\n",protocolo);
 		return ERROR;
@@ -202,6 +230,7 @@ printf("Enviar(%"PRIu16") %s %d.\n",protocolo,__FILE__,__LINE__);
 	else {
 		return protocolos_registrados[protocolo](mensaje,longitud,pila_protocolos,parametros);
 	}
+	
 	return ERROR;
 }
 
@@ -221,12 +250,14 @@ printf("Enviar(%"PRIu16") %s %d.\n",protocolo,__FILE__,__LINE__);
 
 uint8_t moduloUDP(uint8_t* mensaje,uint64_t longitud, uint16_t* pila_protocolos,void *parametros){
 	uint8_t segmento[UDP_SEG_MAX]={0};
-	uint16_t puerto_origen = 0,suma_control=0;
+	uint16_t puerto_origen = 0, suma_control=0;
 	uint16_t aux16;
 	uint32_t pos=0;
 	uint16_t protocolo_inferior=pila_protocolos[1];
-printf("modulo UDP(%"PRIu16") %s %d.\n",protocolo_inferior,__FILE__,__LINE__);
+	char mensajeaux[longitud];
+	printf("modulo UDP(%"PRIu16") %s %d.\n",protocolo_inferior,__FILE__,__LINE__);
 
+	/*El campo longitud en UDP tiene 16 bits e indica el tamaño en bytes*/
 	if (longitud>(pow(2,16)-UDP_HLEN)){
 		printf("Error: mensaje demasiado grande para UDP (%f).\n",(pow(2,16)-UDP_HLEN));
 		return ERROR;
@@ -234,17 +265,38 @@ printf("modulo UDP(%"PRIu16") %s %d.\n",protocolo_inferior,__FILE__,__LINE__);
 
 	Parametros udpdatos=*((Parametros*)parametros);
 	uint16_t puerto_destino=udpdatos.puerto_destino;
+	
+	if(obtenerPuertoOrigen(&puerto_origen) == ERROR){
+		printf("Error: no se pudo obtener el puerto de origen UDP.\n");
+		return ERROR;
+	}
 
-//TODO
-//[...] 
-//obtenerPuertoOrigen(·)
+	/*Copia el puerto de origen en su sitio del segmento en su sitio*/
 	aux16=htons(puerto_origen);
 	memcpy(segmento+pos,&aux16,sizeof(uint16_t));
 	pos+=sizeof(uint16_t);
-	
-//TODO Completar el segmento [...]
-//[...] 
-//Se llama al protocolo definido de nivel inferior a traves de los punteros registrados en la tabla de protocolos registrados
+
+	/*Copia puerto destino*/
+	aux16 = htons(puerto_destino);
+	memcpy(segmento+pos,&aux16,sizeof(uint16_t));
+	pos+=sizeof(uint16_t);
+
+	/*Copia longitud*/
+	aux16 = htons(longitud+UDP_HLEN);
+	memcpy(segmento+pos,&aux16,sizeof(uint16_t));
+	pos+=sizeof(uint16_t);
+
+	/*Copia Checksum (todo a 0)*/
+	memcpy(segmento+pos,suma_control,sizeof(uint16_t));
+	pos+=sizeof(uint16_t);
+
+	/*ESTO DE AQUI ABAJO ESTA TREMENDAMENTE MAL*/
+	/*Copia de todo el segmento, el mensaje*/
+	mensajeaux = htons(mensaje);
+	memcpy(segmento+pos, mensajeaux, longitud);
+	/*No sumamos pos de nuevo porque ya se hace en la llamada a la siguiente funcion*/
+
+	//Se llama al protocolo definido de nivel inferior a traves de los punteros registrados en la tabla de protocolos registrados
 	return protocolos_registrados[protocolo_inferior](segmento,longitud+pos,pila_protocolos,parametros);
 }
 
@@ -263,7 +315,7 @@ printf("modulo UDP(%"PRIu16") %s %d.\n",protocolo_inferior,__FILE__,__LINE__);
 uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos,void *parametros){
 	uint8_t datagrama[IP_DATAGRAM_MAX]={0};
 	uint32_t aux32;
-	uint16_t aux16;
+	uint16_t aux16, longitud_ip, checksum;
 	uint8_t aux8;
 	uint32_t pos=0,pos_control=0;
 	uint8_t IP_origen[IP_ALEN];
@@ -272,19 +324,114 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 	pila_protocolos++;
 	uint8_t mascara[IP_ALEN],IP_rango_origen[IP_ALEN],IP_rango_destino[IP_ALEN];
 
-printf("modulo IP(%"PRIu16") %s %d.\n",protocolo_inferior,__FILE__,__LINE__);
+	printf("modulo IP(%"PRIu16") %s %d.\n",protocolo_inferior,__FILE__,__LINE__);
 
 	Parametros ipdatos=*((Parametros*)parametros);
-	uint8_t* IP_destino=ipdatos.IP_destino;
 
-//TODO
-//Llamar a ARPrequest(·) adecuadamente y usar ETH_destino de la estructura parametros
-//[...] 
-//TODO A implementar el datagrama y fragmentación (en caso contrario, control de tamano)
-//[...] 
-//llamada/s a protocolo de nivel inferior [...]
+	/*Mal inicializado seguramente*/
+	uint8_t* IP_destino = ipdatos.IP_destino;
+	uint8_t IP_tipo=ipdatos.tipo;
 
 
+	//TODO: Control de tamaño
+
+
+	/*Empezamos a copiar en segmento*/
+
+	/*version, 4 o 6, en nuestro caso siempre 4 = 0100 = 0x4, la concatenamos con ihl*/
+	/*ihl: Longitud de la cabecera en palabras de 32 bits, en nuestro caso sera 5 = 0101 = 0x5*/
+	// No se ni como se representa un byte en memoria, si es al derechas o al reves HULIO
+	// htons no es necesario en este caso, creo
+	aux8 = htons(0x45);
+	memcpy(datagrama+pos,&aux8,sizeof(uint8_t));
+	pos+=sizeof(uint8_t);
+
+	/*Tipo*/
+	aux8 = htons(IP_tipo);
+	memcpy(datagrama+pos,&aux8,sizeof(uint8_t));
+	pos+=sizeof(uint8_t);
+
+	/*Longitud total*/
+	/*Es necesario distinguir entre fragmentacion y no freagmentacion*/
+	pos+=sizeof(uint16_t);
+
+	/*Identificador*/
+	/*Se le asigna a cada pareja origen-destino*, es una movida, se usa para fragmentacion*/
+
+	pos+=sizeof(uint16_t);
+
+	/*Flags  y POSICION, ambas para fragmentacion*/
+	
+	pos+=sizeof(uint8_t);
+	
+	/*Tiempo de vida*/
+	//Wikipedia dice que normalmente toma el valor de 64 o 128
+	aux8 = htons(64);
+	memcpy(datagrama+pos,&aux8,sizeof(uint8_t));
+	pos+=sizeof(uint8_t);
+
+	/*Protocolo(superior)*/ 
+	aux8 = htons(protocolo_superior);
+	memcpy(datagrama+pos,&aux8,sizeof(uint8_t));
+	pos+=sizeof(uint8_t);
+
+	/*Checksum (Primera interaccion: Se asigna todo a 0*/
+	pos_control = pos;
+	aux16 = 0;
+	memcpy(datagrama+pos,&aux16,sizeof(uint16_t));
+	pos+=sizeof(uint8_t);
+
+	/*Direccion IP Origen*/
+	if(obtenerIPInterface(ipdatos., &aux8) == ERROR)
+		return ERROR;
+	aux32 = htons((uint32_t) aux8);
+	pos+=sizeof(uint32_t);
+	
+	/*Direccion IP Destino*/
+	
+
+	pos+=sizeof(uint32_t);
+
+	/*Opciones y relleno todo a 0*/
+	aux32 = 0
+	memcpy(datagrama+pos,&aux32,sizeof(uint32_t));
+	pos+=sizeof(uint32_t);
+
+	/*Ahora si se podria calcular el check sum*/
+	if(calcularChecksum(longitud + pos, datagrama, &checksum)==ERROR)
+		return ERROR;
+	aux16 = htons(checksum);
+	memcpy(datagrama+pos,&aux16,sizeof(uint16_t));
+
+	/*Fin de la cabecera*/
+	
+	/*Añadimos debajo de datagrama todo lo que había en segmento*/
+	/*No es necesario hacer htons pues ya se había hehco antes*/
+	memcpy(datagrama+pos, segmento, longitud);
+
+	/*AQUI COMPROBAMOS LA MASCARA CREO, SI LA MASCARA DE IP DESTINO E IP ORIGEN ES LA MISMA, PODEMOS HACER
+	ARP REQUEST, SI NO, ASIGNAMOS A ETH DESTINO EL VALOR DE GATEAWAY*/
+
+	if(obtenerMascaraInterface(interface, mascara) == ERROR)
+		return ERROR;
+
+	if(aplicarMascara(IP_origen, mascara, 32, IP_rango_origen) == ERROR)
+		return ERROR;
+	if(aplicarMascara(IP_destino, mascara, 32, IP_rango_destino) == ERROR)
+		return ERROR;
+
+	if((IP_rango_origen[1] == IP_rango_destino[1]) && (IP_rango_origen[2] == IP_rango_destino[2]) && (IP_rango_origen[3] == IP_rango_destino[3]) && (IP_rango_origen[4] == IP_rango_destino[4])){
+		/*ARP REQUEST*/
+		if(ARPrequest(interface, &ipdatos.IP_destino, &ipdatos.ETH_destino){
+			return ERROR;
+		}
+	} else{
+		if(obtenerGateway(interface, &ipdatos.ETH_destino) == ERROR){
+			return ERROR;
+		}
+
+	}
+	return protocolos_registrados[protocolo_inferior](datagrama,longitud+pos,pila_protocolos,parametros);
 }
 
 
@@ -300,24 +447,64 @@ printf("modulo IP(%"PRIu16") %s %d.\n",protocolo_inferior,__FILE__,__LINE__);
 ****************************************************************************************/
 
 uint8_t moduloETH(uint8_t* datagrama, uint64_t longitud, uint16_t* pila_protocolos,void *parametros){
-//TODO
-//[....]
-//[...] Variables del modulo
-uint8_t trama[ETH_FRAME_MAX]={0};
-
-printf("modulo ETH(fisica) %s %d.\n",__FILE__,__LINE__);	
-
-//TODO
-//[...] Control de tamano
-
-//TODO
-//[...] Cabecera del modulo
-
-//TODO
-//Enviar a capa fisica [...]  
-//TODO
-//Almacenamos la salida por cuestiones de debugging [...]
 	
+	FILE* f;
+	uint8_t trama[ETH_FRAME_MAX]={0};
+	uint8_t pos = 0;
+	uint16_t aux16;
+	uint64_t aux64;
+	uint16_t protocolo_superior=pila_protocolos[0];
+	uint8_t* ETH_destino = ethdatos.ETH_destino;
+	uint8_t* ETH_origen;
+	Parametros ethdatos=*((Parametros*)parametros);
+	
+	pila_protocolos++;
+	
+	ETH_destino = ethdatos.ETH_destino;
+
+	printf("modulo ETH(fisica) %s %d.\n",__FILE__,__LINE__);	
+
+	//TODO
+	//[...] Control de tamano
+
+
+	/*Direccion Ethernet Destino*/
+
+	//Problema con los 48 buts de direccion mac, no son 64*/
+	aux64 = htons(ETH_destino);
+	memcpy(trama+pos,&aux64,sizeof(uint64_t));
+	pos+=6;
+
+
+	/*Direccion Ethernet Origen*/
+
+	if(obtenerMACdeInterface(interface, ETH_origen)==ERROR){
+		return ERROR;
+	}
+
+	aux64 = htons(ETH_origen);
+	memcpy(trama+pos,&aux64,sizeof(uint64_t));
+	pos+=sizeof(uint64_t);
+
+	/*Tipo Ethernet, IP es siempre 0x800*/
+
+	aux16 = htons(0x0800);
+	memcpy(trama+pos,&aux16,sizeof(uint16_t));
+	pos+=sizeof(uint16_t);
+
+	//Copiamos el datagrama "debajo de la trama"
+	memcpy(trama+pos, datagrama, longitud);
+
+	pcap_sendpacket(descr, (const u_char *) trama, longitud + pos);
+	
+	//TODO
+	//Almacenamos la salida por cuestiones de debugging [...]
+	//¿Donde la almacenamos? En un fichero I Guess
+
+	f = fopen(salida.txt, "r");
+	fprintf(f, "%s\n", trama);
+	fclose(f);
+
 	return OK;
 }
 
@@ -353,9 +540,16 @@ uint8_t moduloICMP(uint8_t* mensaje,uint64_t longitud, uint16_t* pila_protocolos
 * Retorno: OK/ERROR									*
 ****************************************************************************************/
 
+/*La reserva de memoria debe hacerse fuera de la funcion*/
 uint8_t aplicarMascara(uint8_t* IP, uint8_t* mascara, uint32_t longitud, uint8_t* resultado){
-//TODO
-//[...]
+
+	int i;
+
+	for(i = 0; i<longitud; i++){
+		resultado[i] = (IP[i] & mascara[i]);
+	}
+
+	return OK;
 }
 
 
@@ -425,12 +619,18 @@ uint8_t inicializarPilaEnviar() {
 	bzero(protocolos_registrados,MAX_PROTOCOL*sizeof(pf_notificacion));
 	if(registrarProtocolo(ETH_PROTO, moduloETH, protocolos_registrados)==ERROR)
 		return ERROR;
+
+	//Duda acerca de IP_PROTO, esta en hexadecimal. No influye para hacer de indice del array (Consultado).
 	if(registrarProtocolo(IP_PROTO, moduloIP, protocolos_registrados)==ERROR)
 		return ERROR;
 	
-//TODO
-//A registrar los modulos de UDP y ICMP [...] 
+	//Podemos regustrar los dos protocolos sin problema, esto es como una recopilacion de funciones,
+	// no  es la "pila exacta" que seguira ningun paquete. (CREO)
 
+	if(registrarProtocolo(UDP_PROTO, moduloUDP, protocolos_registrados)==ERROR)
+		return ERROR;
+	if(registrarProtocolo(ICMP_PROTO, moduloICMP, protocolos_registrados)==ERROR)
+		return ERROR;
 	return OK;
 }
 

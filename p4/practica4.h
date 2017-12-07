@@ -40,28 +40,30 @@
 
 #define IP_ALEN 4		// Tamano de direccion IP
 #define IP_DATAGRAM_MAX 65536 	// Tamano maximo datagrama IP 
-#define IP_PROTO 0x0800		// Identificador protocolo UDP	
+#define IP_PROTO 0x0800		// Identificador protocolo IP	
 
 #define UDP_HLEN 8	      	// Tamano de cabecera UDP	
 #define UDP_SEG_MAX 65536  	// Tamano maximo segmento UDP
 #define UDP_PROTO 17		// Identificador protocolo UDP
 
-#define ICMP_PROTO 1		// Identificador protocolo ICMP
 #define ICMP_HLEN 8		// Tamano de cabecera ICMP
 #define ICMP_DATAGRAM_MAX 48	// Tamano maximo ICMP (arbitrario, truncar si es necesario)
+#define ICMP_PROTO 1		// Identificador protocolo ICMP
 
 #define PING_TIPO 8		//Codigo y tipo para PINGs
 #define PING_CODE 0		//
 
 #define CADENAS 256
 
-#define MAX_PROTOCOL 65536	//Numero maximo identificador protocolo IP
+#define MAX_PROTOCOL 65536	//Numero maximo identificador protocolo IP, el campo protocolo tiene 2 bytes. Esto es igual a FFFF
 
 #define OK 0
 #define ERROR 1
 
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 
+
+//Esto es un puntero a funcion que vale para apuntar a moduloUDP/ICMP... (pq coinciden los argumentos y el retorno)
 typedef uint8_t (*pf_notificacion) (uint8_t* datos, uint64_t longitud,uint16_t* pila_protocolos,void *parametros);
 pf_notificacion protocolos_registrados[MAX_PROTOCOL];
 
