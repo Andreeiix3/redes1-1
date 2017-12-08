@@ -434,7 +434,7 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 			//No hace falta hacer htons porque la funcion a te la devuelve en orden de red
 			memcpy(datagrama+pos,&auxIP,sizeof(uint32_t));
 			pos+=sizeof(uint32_t);
-			
+			free(auxIP);
 			/*Direccion IP Destino*/
 			/* Mismo que sin fragmentación*/
 			aux32 = htonl(*((uint32_t*) IP_destino));
@@ -572,6 +572,7 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 		//No hace falta hacer htons porque la funcion a te la devuelve en orden de red
 		memcpy(datagrama+pos,&auxIP,sizeof(uint32_t));
 		pos+=sizeof(uint32_t);
+		free(auxIP);
 		
 		/*Direccion IP Destino*/
 		aux32 = htonl(*((uint32_t*) IP_destino));
