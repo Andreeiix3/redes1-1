@@ -324,6 +324,7 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 	uint16_t mtu;
 	uint16_t long_frag;
 	uint8_t aux8;
+	uint8_t * auxIP;
 	uint8_t* checksum;
 	uint32_t pos=0,pos_control=0,pos_frag=0;
 	uint8_t IP_origen[IP_ALEN];
