@@ -376,6 +376,8 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 			memcpy(datagrama+pos,&aux8,sizeof(uint8_t));
 			pos+=sizeof(uint8_t);
 
+			printf("Holaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaap\n");
+
 			/*Longitud total*/
 			/*Será la longitud de este fragmento incluida su cabecera*/
 			/*En el caso de Ethernet siempre es 1500 excepto el último fragmento*/
@@ -391,7 +393,7 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 			/*Identificador*/
 			/*Aqui podemos hacer o no el htons. Será único*/
 			// Aqui y en icmp atencion!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-			aux16 = htons(*(uint16_t *)cont);
+			aux16 = htons(cont);
 			memcpy(datagrama+pos,&aux16,sizeof(uint16_t));
 			pos+=sizeof(uint16_t);
 
@@ -512,7 +514,7 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 		numpack = 1;
 
 		/*Empezamos a copiar en segmento*/
-
+		printf("Holaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaap sin seg\n");
 		/*version, 4 o 6, en nuestro caso siempre 4 = 0100 = 0x4, la concatenamos con ihl*/
 		/*ihl: Longitud de la cabecera en palabras de 32 bits, en nuestro caso sera 6 = 0110 = 0x6*/
 		// No se ni como se representa un byte en memoria, si es al derechas o al reves HULIO
@@ -520,25 +522,28 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 		aux8 = htons(0x46);
 		memcpy(datagrama+pos,&aux8,sizeof(uint8_t));
 		pos+=sizeof(uint8_t);
-
+		printf("cachopo\n");
 		/*Tipo*/
 		aux8 = IP_tipo;
 		memcpy(datagrama+pos,&aux8,sizeof(uint8_t));
 		pos+=sizeof(uint8_t);
+		printf("cachopo\n");
 
 		/*Longitud total*/
 		/*Es necesario distinguir entre fragmentacion y no freagmentacion*/
-		aux16 = htons(*(uint16_t *)longitud);
+		aux16 = htons(longitud + IP_HLEN);
 		memcpy(datagrama+pos,&aux16,sizeof(uint16_t));
 		pos+=sizeof(uint16_t);
+		printf("cachopo\n");
 
 		/*Identificador*/
 		/*Se le asigna a cada pareja origen-destino*, es una movida, se usa para fragmentacion*/
 
 		// Aqui y en icmp atencion!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		aux16 = htons(*(uint16_t *)cont);
+		aux16 = htons(cont);
 		memcpy(datagrama+pos,&aux16,sizeof(uint16_t));
 		pos+=sizeof(uint16_t);
+		printf("cachopo\n");
 
 		/*Flags  y POSICION, ambas para fragmentacion*/
 		aux16 = 0;
@@ -557,7 +562,7 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 		aux8 = htons(protocolo_superior);
 		memcpy(datagrama+pos,&aux8,sizeof(uint8_t));
 		pos+=sizeof(uint8_t);
-
+		printf("Holaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaap\n");
 		/*Checksum (Primera interaccion: Se asigna todo a 0*/
 		pos_control = pos;
 		aux16 = 0;
