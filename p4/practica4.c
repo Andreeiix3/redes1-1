@@ -371,7 +371,7 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 
 			/*Tipo*/
 			/* Mismo que sin fragmentación*/
-			aux8 = htons(IP_tipo);
+			aux8 = IP_tipo;
 			memcpy(datagrama+pos,&aux8,sizeof(uint8_t));
 			pos+=sizeof(uint8_t);
 
@@ -390,7 +390,7 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 			/*Identificador*/
 			/*Aqui podemos hacer o no el htons. Será único*/
 			// Aqui y en icmp atencion!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-			aux16 = htons(cont);
+			aux16 = htons(*(uint16_t *)cont);
 			memcpy(datagrama+pos,&aux16,sizeof(uint16_t));
 			pos+=sizeof(uint16_t);
 
@@ -427,11 +427,11 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 
 			/*Direccion IP Origen*/
 			//a esto se le tiene que pasar un array de uint8_t donde aux8!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-			/* Mismo que sin fragmentación*/
-			if(obtenerIPInterface(interface, &aux8) == ERROR)
+			auxIP = (uint8_t*) malloc (IP_ALEN*sizeof(uint8_t));
+			if(obtenerIPInterface(interface, &auxIP) == ERROR)
 				return ERROR;
 			//No hace falta hacer htons porque la funcion a te la devuelve en orden de red
-			memcpy(datagrama+pos,&aux8,sizeof(uint32_t));
+			memcpy(datagrama+pos,&auxIP,sizeof(uint32_t));
 			pos+=sizeof(uint32_t);
 			
 			/*Direccion IP Destino*/
@@ -521,7 +521,7 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 		pos+=sizeof(uint8_t);
 
 		/*Tipo*/
-		aux8 = htons(IP_tipo);
+		aux8 = IP_tipo;
 		memcpy(datagrama+pos,&aux8,sizeof(uint8_t));
 		pos+=sizeof(uint8_t);
 
@@ -548,7 +548,7 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 		/*Tiempo de vida*/
 		//Wikipedia dice que normalmente toma el valor de 64 o 128
 		// esto creo que estaria bn ponerlo en hexadecimal, no sabemos si te lo esta escribiendo en 16 bits y luego dandole la vuelta!!!!!!!!!!
-		aux8 = htons(64);
+		aux8 = 64;
 		memcpy(datagrama+pos,&aux8,sizeof(uint8_t));
 		pos+=sizeof(uint8_t);
 
@@ -565,10 +565,11 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 
 		/*Direccion IP Origen*/
 		//a esto se le tiene que pasar un array de uint8_t donde aux8!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		if(obtenerIPInterface(interface, &aux8) == ERROR)
+		auxIP = (uint8_t*) malloc (IP_ALEN*sizeof(uint8_t));
+		if(obtenerIPInterface(interface, &auxIP) == ERROR)
 			return ERROR;
 		//No hace falta hacer htons porque la funcion a te la devuelve en orden de red
-		memcpy(datagrama+pos,&aux8,sizeof(uint32_t));
+		memcpy(datagrama+pos,&auxIP,sizeof(uint32_t));
 		pos+=sizeof(uint32_t);
 		
 		/*Direccion IP Destino*/
