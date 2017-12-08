@@ -264,7 +264,7 @@ uint8_t moduloUDP(uint8_t* mensaje,uint64_t longitud, uint16_t* pila_protocolos,
 	uint16_t aux16;
 	uint32_t pos=0;
 	uint16_t protocolo_inferior=pila_protocolos[1];
-	printf("modulo UDP(%"PRIu16") %s %d.\n",protocolo_inferior,__FILE__,__LINE__);
+	printf("\nmodulo UDP(%"PRIu16") %s %d.\n",protocolo_inferior,__FILE__,__LINE__);
 
 	/*El campo longitud en UDP tiene 16 bits e indica el tamaño en bytes*/
 	if (longitud>(pow(2,16)-UDP_HLEN)){
@@ -353,22 +353,17 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 	}
 
 
-
 	//Comprobamos si cabe en un paquete
 	if(longitud > mtu - IP_HLEN){
+		printf("\n\nEste paquete esta siendo FRAGMENTADO\n\n");
 		//Fragmentacion	
-		printf("\nERRROR SEGMENTACION AUN NO IMPLEMENTADA\n");
-		
 		numpack = (longitud + IP_HLEN)/mtu;
 		for(i = 0; i <= numpack; i++){
 
 			/*En la fragmentación la cabecera del nivel se repite cambiando ciertos campos*/
 
-			/*version, 4 o 6, en nuestro caso siempre 4 = 0100 = 0x4, la concatenamos con ihl*/
+			/*Version, 4 o 6, en nuestro caso siempre 4 = 0100 = 0x4, la concatenamos con ihl*/
 			/*ihl: Longitud de la cabecera en palabras de 32 bits, en nuestro caso sera 6 = 0110 = 0x6*/
-			// No se ni como se representa un byte en memoria, si es al derechas o al reves HULIO
-			// htons no es necesario en este caso, creo
-			/* Mismo que sin fragmentación*/
 			aux8 = 0x46;
 			memcpy(datagrama+pos,&aux8,sizeof(uint8_t));
 			pos+=sizeof(uint8_t);
@@ -382,7 +377,7 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 			/*Longitud total*/
 			/*Será la longitud de este fragmento incluida su cabecera*/
 			/*En el caso de Ethernet siempre es 1500 excepto el último fragmento*/
-			/*dDependiendp de la longitud del framento*/
+			/*Dependiend0 de la longitud del framento*/
 			if(i == numpack){
 				long_frag = longitud - mtu*numpack + IP_HLEN;
 			}else{
@@ -466,41 +461,43 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 			memcpy(datagrama+pos, segmento + pos_frag, long_frag - IP_HLEN);
 			pos = pos + long_frag - IP_HLEN;
 
+			if(obtenerMTUInterface(interface, &mtu) == ERROR){
+		return ERROR;
+	}
 
-			/*Esto de la máscara se puede poner código arriba para solo hacer una vez estas comprobaciones!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!*/
-			/*AQUI COMPROBAMOS LA MASCARA CREO, SI LA MASCARA DE IP DESTINO E IP ORIGEN ES LA MISMA, PODEMOS HACER
-			ARP REQUEST, SI NO, ASIGNAMOS A ETH DESTINO EL VALOR DE GATEAWAY*/
 
-			if(obtenerMascaraInterface(interface, mascara) == ERROR)
-				return ERROR;
+	if(obtenerMascaraInterface(interface, mascara) == ERROR)
+		return ERROR;
 
-			if(aplicarMascara(IP_origen, mascara, IP_ALEN, IP_rango_origen) == ERROR)
-				return ERROR;
-			if(aplicarMascara(IP_destino, mascara, IP_ALEN, IP_rango_destino) == ERROR)
-				return ERROR;
+	if(aplicarMascara(IP_origen, mascara, IP_ALEN, IP_rango_origen) == ERROR)
+		return ERROR;
+			
+	if(aplicarMascara(IP_destino, mascara, IP_ALEN, IP_rango_destino) == ERROR)
+		return ERROR;
 
-			if((IP_rango_origen[1] == IP_rango_destino[1]) && (IP_rango_origen[2] == IP_rango_destino[2]) && (IP_rango_origen[3] == IP_rango_destino[3]) && (IP_rango_origen[4] == IP_rango_destino[4])){
-				/*ARP REQUEST*/
-				printf("El destino está en la misma subred que el origen\n");
-				if(ARPrequest(interface, ipdatos.IP_destino, ipdatos.ETH_destino)){
-					return ERROR;
-				}
-			} else{
-				printf("El destino NO está en la misma subred que el origen\n");
-				gateWay = (uint8_t*) malloc (IP_ALEN*sizeof(uint8_t));
-				if(obtenerGateway(interface, gateWay) == ERROR)
-					return ERROR;
+	if((IP_rango_origen[1] == IP_rango_destino[1]) && (IP_rango_origen[2] == IP_rango_destino[2]) && (IP_rango_origen[3] == IP_rango_destino[3]) && (IP_rango_origen[4] == IP_rango_destino[4])){
+		/*ARP REQUEST*/
+		printf("El destino está en la misma subred que el origen\n");
+		if(ARPrequest(interface, ipdatos.IP_destino, ipdatos.ETH_destino)){
+			return ERROR;
+		}
+	} else{
+		printf("El destino NO está en la misma subred que el origen\n");
+		gateWay = (uint8_t*) malloc (IP_ALEN*sizeof(uint8_t));
+		
+		if(obtenerGateway(interface, gateWay) == ERROR)
+			return ERROR;
 
-				if(ARPrequest(interface, gateWay, ipdatos.ETH_destino) == ERROR)
-					return ERROR;
+		if(ARPrequest(interface, gateWay, ipdatos.ETH_destino) == ERROR)
+			return ERROR;
 				
-				free(gateWay);
-			}
+		free(gateWay);
+	}
 
 			if(i == numpack){
-				return protocolos_registrados[protocolo_inferior](datagrama + pos,long_frag,pila_protocolos,parametros);
+				return protocolos_registrados[protocolo_inferior](datagrama + pos,long_frag,pila_protocolos,&ipdatos);
 			}else{
-				if(protocolos_registrados[protocolo_inferior](datagrama + pos,long_frag,pila_protocolos,parametros) == ERROR)
+				if(protocolos_registrados[protocolo_inferior](datagrama + pos,long_frag,pila_protocolos,&ipdatos) == ERROR)
 					return ERROR;
 
 			}
@@ -509,6 +506,7 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 
 	}
 	else{
+		
 		//Un solo paquete
 		numpack = 1;
 
@@ -517,8 +515,7 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 		/*Empezamos a copiar en segmento*/
 		/*version, 4 o 6, en nuestro caso siempre 4 = 0100 = 0x4, la concatenamos con ihl*/
 		/*ihl: Longitud de la cabecera en palabras de 32 bits, en nuestro caso sera 6 = 0110 = 0x6*/
-		// No se ni como se representa un byte en memoria, si es al derechas o al reves HULIO
-		// htons no es necesario en este caso, creo
+		
 		aux8 = 0x46;
 		memcpy(datagrama+pos,&aux8,sizeof(uint8_t));
 		pos+=sizeof(uint8_t);
@@ -535,9 +532,7 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 		pos+=sizeof(uint16_t);
 
 		/*Identificador*/
-		/*Se le asigna a cada pareja origen-destino*, es una movida, se usa para fragmentacion*/
 
-		// Aqui y en icmp atencion!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		aux16 = htons(cont+1);
 		memcpy(datagrama+pos,&aux16,sizeof(uint16_t));
 		pos+=sizeof(uint16_t);
@@ -549,8 +544,6 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 		pos+=sizeof(uint16_t);
 		
 		/*Tiempo de vida*/
-		//Wikipedia dice que normalmente toma el valor de 64 o 128
-		// esto creo que estaria bn ponerlo en hexadecimal, no sabemos si te lo esta escribiendo en 16 bits y luego dandole la vuelta!!!!!!!!!!
 		aux8 = 64;
 		memcpy(datagrama+pos,&aux8,sizeof(uint8_t));
 		pos+=sizeof(uint8_t);
@@ -566,9 +559,9 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 		pos+=sizeof(uint16_t);
 
 		/*Direccion IP Origen*/
-		//a esto se le tiene que pasar un array de uint8_t donde aux8!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 		if(obtenerIPInterface(interface, IP_origen) == ERROR)
 			return ERROR;
+		
 		//No hace falta hacer htons porque la funcion a te la devuelve en orden de red
 		memcpy(datagrama+pos,IP_origen,sizeof(uint32_t));
 		pos+=sizeof(uint32_t);
@@ -584,10 +577,10 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 		pos+=sizeof(uint32_t);
 
 		/*Ahora si se podria calcular el check sum*/
-		// se calcula checksum con longitud, no era algo de cabecera???????????????????????????????????????????????????????????????????????
 		checksum = (uint8_t *) malloc (sizeof(uint16_t));
 		if(calcularChecksum(IP_HLEN, datagrama, checksum)==ERROR)
 			return ERROR;
+
 		//No es necesario hacer el htons aqui porque la fucion ya te la devuelve en orden de red
 		memcpy(datagrama + pos_control,checksum,sizeof(uint16_t));
 		free(checksum);
@@ -595,58 +588,44 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 		/*Fin de la cabecera*/
 		
 		/*Añadimos debajo de datagrama todo lo que había en segmento*/
-		/*No es necesario hacer htons pues ya se había hehco antes*/
 		memcpy(datagrama+pos, segmento, longitud);
 
-		/*AQUI COMPROBAMOS LA MASCARA CREO, SI LA MASCARA DE IP DESTINO E IP ORIGEN ES LA MISMA, PODEMOS HACER
-		ARP REQUEST, SI NO, ASIGNAMOS A ETH DESTINO EL VALOR DE GATEAWAY*/
 
-		if(obtenerMascaraInterface(interface, mascara) == ERROR)
-			return ERROR;
-
-		if(aplicarMascara(IP_origen, mascara, IP_ALEN, IP_rango_origen) == ERROR)
-			return ERROR;
-		if(aplicarMascara(IP_destino, mascara, IP_ALEN, IP_rango_destino) == ERROR)
-			return ERROR;
-
-		/*printf("ARQOOOOOOOOOOOOOOOOO\n");
-
-		int p;
-		for (p=0; p< IP_ALEN; p++){
-			printf("%"PRIu8".", IP_rango_origen[p]);
-		}
-
-		printf("\n");
-
-		for (p=0; p< IP_ALEN; p++){
-			printf("%"PRIu8".", IP_rango_destino[p]);
-		}
-
-		printf("\n");*/
-
-		if((IP_rango_origen[1] == IP_rango_destino[1]) && (IP_rango_origen[2] == IP_rango_destino[2]) && (IP_rango_origen[3] == IP_rango_destino[3]) && (IP_rango_origen[4] == IP_rango_destino[4])){
-			/*ARP REQUEST*/
-			printf("El destino está en la misma subred que el origen\n");
-			if(ARPrequest(interface, ipdatos.IP_destino, ipdatos.ETH_destino)){
-				return ERROR;
-			}
-		} else{
-			printf("El destino NO está en la misma subred que el origen\n");
-			gateWay = (uint8_t*) malloc (IP_ALEN*sizeof(uint8_t));
-			if(obtenerGateway(interface, gateWay) == ERROR)
-				return ERROR;
-
-			if(ARPrequest(interface, gateWay, ipdatos.ETH_destino) == ERROR)
-				return ERROR;
-			
-			free(gateWay);
-		}
-		return protocolos_registrados[protocolo_inferior](datagrama,longitud+pos,pila_protocolos,parametros);
+		if(obtenerMTUInterface(interface, &mtu) == ERROR){
+		return ERROR;
 	}
 
 
-	/*Si llega aqui algo esta muuuuuuy mal*/
-	printf("Si llega aqui algo esta muuuuuuy mal\n");
+	if(obtenerMascaraInterface(interface, mascara) == ERROR)
+		return ERROR;
+
+	if(aplicarMascara(IP_origen, mascara, IP_ALEN, IP_rango_origen) == ERROR)
+		return ERROR;
+			
+	if(aplicarMascara(IP_destino, mascara, IP_ALEN, IP_rango_destino) == ERROR)
+		return ERROR;
+
+	if((IP_rango_origen[1] == IP_rango_destino[1]) && (IP_rango_origen[2] == IP_rango_destino[2]) && (IP_rango_origen[3] == IP_rango_destino[3]) && (IP_rango_origen[4] == IP_rango_destino[4])){
+		/*ARP REQUEST*/
+		printf("El destino está en la misma subred que el origen\n");
+		if(ARPrequest(interface, ipdatos.IP_destino, ipdatos.ETH_destino)){
+			return ERROR;
+		}
+	} else{
+		printf("El destino NO está en la misma subred que el origen\n");
+		gateWay = (uint8_t*) malloc (IP_ALEN*sizeof(uint8_t));
+		
+		if(obtenerGateway(interface, gateWay) == ERROR)
+			return ERROR;
+
+		if(ARPrequest(interface, gateWay, ipdatos.ETH_destino) == ERROR)
+			return ERROR;
+				
+		free(gateWay);
+	}
+		return protocolos_registrados[protocolo_inferior](datagrama,longitud+pos,pila_protocolos,&ipdatos);
+	}
+
 	return ERROR;
 	
 }
@@ -674,11 +653,12 @@ uint8_t moduloETH(uint8_t* datagrama, uint64_t longitud, uint16_t* pila_protocol
 	Parametros ethdatos =*((Parametros*)parametros);
     struct pcap_pkthdr cabecera;
     struct timeval time;
+    int p;
 
 	pila_protocolos++;
 	
 	ETH_destino = ethdatos.ETH_destino;
-
+	
 	printf("modulo ETH(fisica) %s %d.\n",__FILE__,__LINE__);	
 
 
@@ -692,7 +672,6 @@ uint8_t moduloETH(uint8_t* datagrama, uint64_t longitud, uint16_t* pila_protocol
 
 	/*Direccion Ethernet Destino*/
 
-	//Problema con los 48 buts de direccion mac, no son 64*/
 	//No es necesario hacer htons porque el ARPRequest ya te lo da en formato de red
 	
 	memcpy(trama+pos,ETH_destino,ETH_ALEN*sizeof(uint8_t));
@@ -721,7 +700,7 @@ uint8_t moduloETH(uint8_t* datagrama, uint64_t longitud, uint16_t* pila_protocol
 	pcap_sendpacket(descr, (const u_char *) trama, (longitud + pos)*sizeof(uint8_t));
 	
 
-	time.tv_sec = 5;
+	gettimeofday(&time, NULL);
 	cabecera.ts = time;
 	cabecera.caplen = longitud + pos;
 	cabecera.len = longitud + pos;
@@ -755,7 +734,6 @@ uint8_t moduloICMP(uint8_t* mensaje,uint64_t longitud, uint16_t* pila_protocolos
 	printf("modulo UDP(%"PRIu16") %s %d.\n",protocolo_inferior,__FILE__,__LINE__);
 
 
-	// ESTO POSIBLEMENTE SE DEBA COPROBAR QUE EL DATAGRAMA NO MIDA MAS DE 48
 	/*El campo longitud en UDP tiene 16 bits e indica el tamaño en bytes*/
 	if (longitud>(ICMP_DATAGRAM_MAX-ICMP_HLEN)){
 		printf("Error: mensaje demasiado grande para UDP (%d).\n",(ICMP_DATAGRAM_MAX-ICMP_HLEN));
@@ -769,10 +747,6 @@ uint8_t moduloICMP(uint8_t* mensaje,uint64_t longitud, uint16_t* pila_protocolos
 	identificador = cont+1;
 	numsecuencia = cont+1;
 	
-	/*if(obtenerPuertoOrigen(&puerto_origen) == ERROR){
-		printf("Error: no se pudo obtener el puerto de origen UDP.\n");
-		return ERROR;
-	}*/
 
 	/*Copia tipo*/
 	memcpy(segmento+pos,&icmpparametros.tipo,sizeof(uint8_t));
@@ -782,7 +756,7 @@ uint8_t moduloICMP(uint8_t* mensaje,uint64_t longitud, uint16_t* pila_protocolos
 	memcpy(segmento+pos,&icmpparametros.codigo,sizeof(uint8_t));
 	pos+=sizeof(uint8_t);
 
-	/*Guardamos dirección para calcular el cheksum posteriormente */
+	/*Guardamos dirección para calcular el checksum posteriormente */
 	pos_control = pos;
 	/*Copia Checksum (todo a 0)*/
 	memcpy(segmento+pos,&suma_control,sizeof(uint16_t));
@@ -805,21 +779,13 @@ uint8_t moduloICMP(uint8_t* mensaje,uint64_t longitud, uint16_t* pila_protocolos
 	checksum = (uint8_t *) malloc (sizeof(uint16_t));
 	if(calcularChecksum(longitud + pos, segmento, checksum)==ERROR)
 		return ERROR;
+	
 	//No es necesario hacer el htons aqui porque la fucion ya te la devuelve en orden de red
 	memcpy(segmento + pos_control,checksum,sizeof(uint16_t));
 	free(checksum);
 
-	
-
-	
-
-
 	//Se llama al protocolo definido de nivel inferior a traves de los punteros registrados en la tabla de protocolos registrados
 	return protocolos_registrados[protocolo_inferior](segmento,longitud+pos,pila_protocolos,parametros);
-
-
-//TODO
-//[....]
 
 }
 
