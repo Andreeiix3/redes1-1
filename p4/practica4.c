@@ -94,10 +94,14 @@ int main(int argc, char **argv){
 				} else {
 					sprintf(fichero_pcap_destino,"%s%s",optarg,".pcap");
 					f = fopen(optarg, "r");
-					if (fgets(data, sizeof data, f)==NULL) {
-						  	printf("Error leyendo desde fichero %s: %s %s %d.\n",optarg,errbuf,__FILE__,__LINE__);
-						return ERROR;
+					while(!feof(f)){
+						printf("xD\n");
+						if ((fgets(data, sizeof data, f)==NULL) && strlen(data) < 1){
+							  	printf("Error leyendo desde fichero %s: %s %s %d.\n",optarg,errbuf,__FILE__,__LINE__);
+							return ERROR;
+						}
 					}
+					printf("%s\n", data);
 					fclose(f);
 				}
 				flag_file = 1;
@@ -324,7 +328,6 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 	uint16_t mtu;
 	uint16_t long_frag;
 	uint8_t aux8;
-	uint8_t * auxIP;
 	uint8_t* checksum;
 	uint32_t pos=0,pos_control=0,pos_frag=0;
 	uint8_t IP_origen[IP_ALEN];
@@ -354,7 +357,7 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 	//Comprobamos si cabe en un paquete
 	if(longitud > mtu - IP_HLEN){
 		//Fragmentacion	
-		printf("ERRROR SEGMENTACION AUN NO IMPLEMENTADA");
+		printf("\nERRROR SEGMENTACION AUN NO IMPLEMENTADA\n");
 		
 		numpack = (longitud + IP_HLEN)/mtu;
 		for(i = 0; i <= numpack; i++){
@@ -366,7 +369,7 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 			// No se ni como se representa un byte en memoria, si es al derechas o al reves HULIO
 			// htons no es necesario en este caso, creo
 			/* Mismo que sin fragmentación*/
-			aux8 = htons(0x46);
+			aux8 = 0x46;
 			memcpy(datagrama+pos,&aux8,sizeof(uint8_t));
 			pos+=sizeof(uint8_t);
 
@@ -375,8 +378,6 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 			aux8 = IP_tipo;
 			memcpy(datagrama+pos,&aux8,sizeof(uint8_t));
 			pos+=sizeof(uint8_t);
-
-			printf("Holaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaap\n");
 
 			/*Longitud total*/
 			/*Será la longitud de este fragmento incluida su cabecera*/
@@ -387,13 +388,14 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 			}else{
 				long_frag = mtu;
 			}
-			memcpy(datagrama+pos,&long_frag,sizeof(uint16_t));
+			aux16 = htons(long_frag);
+			memcpy(datagrama+pos,&aux16,sizeof(uint16_t));
 			pos+=sizeof(uint16_t);
 
 			/*Identificador*/
 			/*Aqui podemos hacer o no el htons. Será único*/
 			// Aqui y en icmp atencion!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-			aux16 = htons(cont);
+			aux16 = htons(cont+1);
 			memcpy(datagrama+pos,&aux16,sizeof(uint16_t));
 			pos+=sizeof(uint16_t);
 
@@ -402,9 +404,9 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 			/*de bytes del fragmento sin la cabecera. Sirve para la reensamblación del paquete. Viene a ser el desplazamiento.*/
 			aux16 = ((mtu - IP_HLEN) * i)/8;
 			if(i == numpack){
-				aux16 = 0x3000 | aux16;
+				aux16 = htons(0x0000 | aux16);
 			}else{
-				aux16 = 0x2000 | aux16;
+				aux16 = htons(0x2000 | aux16);
 			}
 			memcpy(datagrama+pos,&aux16,sizeof(uint16_t));
 			pos+=sizeof(uint16_t);
@@ -437,8 +439,7 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 			
 			/*Direccion IP Destino*/
 			/* Mismo que sin fragmentación*/
-			aux32 = htonl(*((uint32_t*) IP_destino));
-			memcpy(datagrama+pos,&aux32,sizeof(uint32_t));
+			memcpy(datagrama+pos,IP_destino,sizeof(uint32_t));
 			pos+=sizeof(uint32_t);
 
 			/*Opciones y relleno todo a 0*/
@@ -451,10 +452,10 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 			/*Ahora si se podria calcular el check sum*/
 			// se calcula checksum con longitud, no era algo de cabecera???????????????????????????????????????????????????????????????????????
 			checksum = (uint8_t *) malloc (sizeof(uint16_t));
-			if(calcularChecksum(long_frag, datagrama, checksum)==ERROR)
+			if(calcularChecksum(IP_HLEN, datagrama + (mtu * i), checksum)==ERROR)
 				return ERROR;
 			//No es necesario hacer el htons aqui porque la fucion ya te la devuelve en orden de red
-			memcpy(datagrama + pos_control,&checksum,sizeof(uint16_t));
+			memcpy(datagrama + (mtu * i) + pos_control,checksum,sizeof(uint16_t));
 			free(checksum);
 
 			/*Fin de la cabecera*/
@@ -481,7 +482,7 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 			if((IP_rango_origen[1] == IP_rango_destino[1]) && (IP_rango_origen[2] == IP_rango_destino[2]) && (IP_rango_origen[3] == IP_rango_destino[3]) && (IP_rango_origen[4] == IP_rango_destino[4])){
 				/*ARP REQUEST*/
 				printf("El destino está en la misma subred que el origen\n");
-				if(ARPrequest(interface, IP_destino, ipdatos.ETH_destino)){
+				if(ARPrequest(interface, ipdatos.IP_destino, ipdatos.ETH_destino)){
 					return ERROR;
 				}
 			} else{
@@ -511,8 +512,9 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 		//Un solo paquete
 		numpack = 1;
 
+		printf("\nNo segmentado\n");
+
 		/*Empezamos a copiar en segmento*/
-		printf("Holaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaap sin seg\n");
 		/*version, 4 o 6, en nuestro caso siempre 4 = 0100 = 0x4, la concatenamos con ihl*/
 		/*ihl: Longitud de la cabecera en palabras de 32 bits, en nuestro caso sera 6 = 0110 = 0x6*/
 		// No se ni como se representa un byte en memoria, si es al derechas o al reves HULIO
@@ -520,19 +522,17 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 		aux8 = 0x46;
 		memcpy(datagrama+pos,&aux8,sizeof(uint8_t));
 		pos+=sizeof(uint8_t);
-		printf("cachopo\n");
+
 		/*Tipo*/
 		aux8 = IP_tipo;
 		memcpy(datagrama+pos,&aux8,sizeof(uint8_t));
 		pos+=sizeof(uint8_t);
-		printf("cachopo\n");
 
 		/*Longitud total*/
 		/*Es necesario distinguir entre fragmentacion y no fragmentacion*/
 		aux16 = htons(longitud + IP_HLEN);
 		memcpy(datagrama+pos,&aux16,sizeof(uint16_t));
 		pos+=sizeof(uint16_t);
-		printf("cachopo\n");
 
 		/*Identificador*/
 		/*Se le asigna a cada pareja origen-destino*, es una movida, se usa para fragmentacion*/
@@ -541,7 +541,6 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 		aux16 = htons(cont+1);
 		memcpy(datagrama+pos,&aux16,sizeof(uint16_t));
 		pos+=sizeof(uint16_t);
-		printf("cachopo\n");
 
 		/*Flags  y POSICION, ambas para fragmentacion*/
 		aux16 = 0;
@@ -559,7 +558,7 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 		/*Protocolo(superior)*/ 
 		memcpy(datagrama+pos,&protocolo_superior,sizeof(uint8_t));
 		pos+=sizeof(uint8_t);
-		printf("Holaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaap\n");
+
 		/*Checksum (Primera interaccion: Se asigna todo a 0*/
 		pos_control = pos;
 		aux16 = 0;
@@ -587,10 +586,10 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 		/*Ahora si se podria calcular el check sum*/
 		// se calcula checksum con longitud, no era algo de cabecera???????????????????????????????????????????????????????????????????????
 		checksum = (uint8_t *) malloc (sizeof(uint16_t));
-		if(calcularChecksum(longitud + pos, datagrama, checksum)==ERROR)
+		if(calcularChecksum(IP_HLEN, datagrama, checksum)==ERROR)
 			return ERROR;
 		//No es necesario hacer el htons aqui porque la fucion ya te la devuelve en orden de red
-		memcpy(datagrama + pos_control,&checksum,sizeof(uint16_t));
+		memcpy(datagrama + pos_control,checksum,sizeof(uint16_t));
 		free(checksum);
 
 		/*Fin de la cabecera*/
@@ -610,7 +609,7 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 		if(aplicarMascara(IP_destino, mascara, IP_ALEN, IP_rango_destino) == ERROR)
 			return ERROR;
 
-		printf("ARQOOOOOOOOOOOOOOOOO\n");
+		/*printf("ARQOOOOOOOOOOOOOOOOO\n");
 
 		int p;
 		for (p=0; p< IP_ALEN; p++){
@@ -623,7 +622,7 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 			printf("%"PRIu8".", IP_rango_destino[p]);
 		}
 
-		printf("\n");
+		printf("\n");*/
 
 		if((IP_rango_origen[1] == IP_rango_destino[1]) && (IP_rango_origen[2] == IP_rango_destino[2]) && (IP_rango_origen[3] == IP_rango_destino[3]) && (IP_rango_origen[4] == IP_rango_destino[4])){
 			/*ARP REQUEST*/
@@ -686,7 +685,7 @@ uint8_t moduloETH(uint8_t* datagrama, uint64_t longitud, uint16_t* pila_protocol
 	if(obtenerMTUInterface(interface, &aux16) == ERROR)
 		return ERROR;
 
-	if(longitud + ETH_HLEN > aux16){
+	if(longitud > aux16){
 		printf("ERROR: moduloETH. MTU superada %s %d.\n",__FILE__,__LINE__);	
 		return ERROR;
 	}
@@ -750,9 +749,9 @@ uint8_t moduloICMP(uint8_t* mensaje,uint64_t longitud, uint16_t* pila_protocolos
 	uint8_t segmento[ICMP_DATAGRAM_MAX]={0};
 	uint16_t suma_control=0, identificador, numsecuencia;
 	uint16_t aux16;
-	uint32_t pos=0;
+	uint32_t pos=0, pos_control;
+	uint8_t * checksum = NULL;
 	uint16_t protocolo_inferior=pila_protocolos[1];
-	uint8_t * mensajeaux;
 	printf("modulo UDP(%"PRIu16") %s %d.\n",protocolo_inferior,__FILE__,__LINE__);
 
 
@@ -767,8 +766,8 @@ uint8_t moduloICMP(uint8_t* mensaje,uint64_t longitud, uint16_t* pila_protocolos
 
 	/* El campo tipo será 8, el codigo 0 (enunciado) y a identificador y numsecuencia les asignaremos el contador */
 	
-	identificador = cont;
-	numsecuencia = cont;
+	identificador = cont+1;
+	numsecuencia = cont+1;
 	
 	/*if(obtenerPuertoOrigen(&puerto_origen) == ERROR){
 		printf("Error: no se pudo obtener el puerto de origen UDP.\n");
@@ -784,7 +783,7 @@ uint8_t moduloICMP(uint8_t* mensaje,uint64_t longitud, uint16_t* pila_protocolos
 	pos+=sizeof(uint8_t);
 
 	/*Guardamos dirección para calcular el cheksum posteriormente */
-	mensajeaux = segmento + pos;
+	pos_control = pos;
 	/*Copia Checksum (todo a 0)*/
 	memcpy(segmento+pos,&suma_control,sizeof(uint16_t));
 	pos+=sizeof(uint16_t);
@@ -801,9 +800,19 @@ uint8_t moduloICMP(uint8_t* mensaje,uint64_t longitud, uint16_t* pila_protocolos
 
 	/*Copia de todo el segmento, el mensaje*/
 	memcpy(segmento+pos, mensaje, longitud * sizeof(uint8_t));
+
 	/*Calculamos el checksum del datagrama ICMP*/
-	if(calcularChecksum(longitud+pos, mensaje, mensajeaux) == ERROR)
+	checksum = (uint8_t *) malloc (sizeof(uint16_t));
+	if(calcularChecksum(longitud + pos, segmento, checksum)==ERROR)
 		return ERROR;
+	//No es necesario hacer el htons aqui porque la fucion ya te la devuelve en orden de red
+	memcpy(segmento + pos_control,checksum,sizeof(uint16_t));
+	free(checksum);
+
+	
+
+	
+
 
 	//Se llama al protocolo definido de nivel inferior a traves de los punteros registrados en la tabla de protocolos registrados
 	return protocolos_registrados[protocolo_inferior](segmento,longitud+pos,pila_protocolos,parametros);
