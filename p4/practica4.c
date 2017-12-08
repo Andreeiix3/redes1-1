@@ -281,7 +281,7 @@ uint8_t moduloUDP(uint8_t* mensaje,uint64_t longitud, uint16_t* pila_protocolos,
 	pos+=sizeof(uint16_t);
 
 	/*Copia puerto destino*/
-	aux16 = htons(puerto_destino);
+	aux16=htons(puerto_destino);
 	memcpy(segmento+pos,&aux16,sizeof(uint16_t));
 	pos+=sizeof(uint16_t);
 
@@ -417,8 +417,7 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 
 			/*Protocolo(superior)*/
 			/* Mismo que sin fragmentación*/
-			aux8 = htons(protocolo_superior);
-			memcpy(datagrama+pos,&aux8,sizeof(uint8_t));
+			memcpy(datagrama+pos,&protocolo_superior,sizeof(uint8_t));
 			pos+=sizeof(uint8_t);
 
 			/*Checksum (Primera interaccion: Se asigna todo a 0*/
@@ -430,13 +429,12 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 
 			/*Direccion IP Origen*/
 			//a esto se le tiene que pasar un array de uint8_t donde aux8!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-			auxIP = (uint8_t*) malloc (IP_ALEN*sizeof(uint8_t));
-			if(obtenerIPInterface(interface, auxIP) == ERROR)
+			if(obtenerIPInterface(interface, IP_origen) == ERROR)
 				return ERROR;
 			//No hace falta hacer htons porque la funcion a te la devuelve en orden de red
-			memcpy(datagrama+pos,auxIP,sizeof(uint32_t));
+			memcpy(datagrama+pos,IP_origen,sizeof(uint32_t));
 			pos+=sizeof(uint32_t);
-			free(auxIP);
+			
 			/*Direccion IP Destino*/
 			/* Mismo que sin fragmentación*/
 			aux32 = htonl(*((uint32_t*) IP_destino));
@@ -483,7 +481,7 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 			if((IP_rango_origen[1] == IP_rango_destino[1]) && (IP_rango_origen[2] == IP_rango_destino[2]) && (IP_rango_origen[3] == IP_rango_destino[3]) && (IP_rango_origen[4] == IP_rango_destino[4])){
 				/*ARP REQUEST*/
 				printf("El destino está en la misma subred que el origen\n");
-				if(ARPrequest(interface, ipdatos.IP_destino, ipdatos.ETH_destino)){
+				if(ARPrequest(interface, IP_destino, ipdatos.ETH_destino)){
 					return ERROR;
 				}
 			} else{
@@ -519,7 +517,7 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 		/*ihl: Longitud de la cabecera en palabras de 32 bits, en nuestro caso sera 6 = 0110 = 0x6*/
 		// No se ni como se representa un byte en memoria, si es al derechas o al reves HULIO
 		// htons no es necesario en este caso, creo
-		aux8 = htons(0x46);
+		aux8 = 0x46;
 		memcpy(datagrama+pos,&aux8,sizeof(uint8_t));
 		pos+=sizeof(uint8_t);
 		printf("cachopo\n");
@@ -530,7 +528,7 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 		printf("cachopo\n");
 
 		/*Longitud total*/
-		/*Es necesario distinguir entre fragmentacion y no freagmentacion*/
+		/*Es necesario distinguir entre fragmentacion y no fragmentacion*/
 		aux16 = htons(longitud + IP_HLEN);
 		memcpy(datagrama+pos,&aux16,sizeof(uint16_t));
 		pos+=sizeof(uint16_t);
@@ -540,14 +538,14 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 		/*Se le asigna a cada pareja origen-destino*, es una movida, se usa para fragmentacion*/
 
 		// Aqui y en icmp atencion!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		aux16 = htons(cont);
+		aux16 = htons(cont+1);
 		memcpy(datagrama+pos,&aux16,sizeof(uint16_t));
 		pos+=sizeof(uint16_t);
 		printf("cachopo\n");
 
 		/*Flags  y POSICION, ambas para fragmentacion*/
 		aux16 = 0;
-		aux16 = 0x3000 | aux16;
+		aux16 = htons(0x4000 | aux16);
 		memcpy(datagrama+pos,&aux16,sizeof(uint16_t));
 		pos+=sizeof(uint16_t);
 		
@@ -559,8 +557,7 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 		pos+=sizeof(uint8_t);
 
 		/*Protocolo(superior)*/ 
-		aux8 = htons(protocolo_superior);
-		memcpy(datagrama+pos,&aux8,sizeof(uint8_t));
+		memcpy(datagrama+pos,&protocolo_superior,sizeof(uint8_t));
 		pos+=sizeof(uint8_t);
 		printf("Holaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaap\n");
 		/*Checksum (Primera interaccion: Se asigna todo a 0*/
@@ -571,17 +568,15 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 
 		/*Direccion IP Origen*/
 		//a esto se le tiene que pasar un array de uint8_t donde aux8!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		auxIP = (uint8_t*) malloc (IP_ALEN*sizeof(uint8_t));
-		if(obtenerIPInterface(interface, auxIP) == ERROR)
+		if(obtenerIPInterface(interface, IP_origen) == ERROR)
 			return ERROR;
 		//No hace falta hacer htons porque la funcion a te la devuelve en orden de red
-		memcpy(datagrama+pos,auxIP,sizeof(uint32_t));
+		memcpy(datagrama+pos,IP_origen,sizeof(uint32_t));
 		pos+=sizeof(uint32_t);
-		free(auxIP);
+		
 		
 		/*Direccion IP Destino*/
-		aux32 = htonl(*((uint32_t*) IP_destino));
-		memcpy(datagrama+pos,&aux32,sizeof(uint32_t));
+		memcpy(datagrama+pos,IP_destino,sizeof(uint32_t));
 		pos+=sizeof(uint32_t);
 
 		/*Opciones y relleno todo a 0*/
@@ -614,6 +609,21 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 			return ERROR;
 		if(aplicarMascara(IP_destino, mascara, IP_ALEN, IP_rango_destino) == ERROR)
 			return ERROR;
+
+		printf("ARQOOOOOOOOOOOOOOOOO\n");
+
+		int p;
+		for (p=0; p< IP_ALEN; p++){
+			printf("%"PRIu8".", IP_rango_origen[p]);
+		}
+
+		printf("\n");
+
+		for (p=0; p< IP_ALEN; p++){
+			printf("%"PRIu8".", IP_rango_destino[p]);
+		}
+
+		printf("\n");
 
 		if((IP_rango_origen[1] == IP_rango_destino[1]) && (IP_rango_origen[2] == IP_rango_destino[2]) && (IP_rango_origen[3] == IP_rango_destino[3]) && (IP_rango_origen[4] == IP_rango_destino[4])){
 			/*ARP REQUEST*/
@@ -696,7 +706,7 @@ uint8_t moduloETH(uint8_t* datagrama, uint64_t longitud, uint16_t* pila_protocol
 	if(obtenerMACdeInterface(interface, ETH_origen)==ERROR){
 		return ERROR;
 	}
-	memcpy(trama+pos,&ETH_origen,ETH_ALEN*sizeof(uint8_t));
+	memcpy(trama+pos,ETH_origen,ETH_ALEN*sizeof(uint8_t));
 	free(ETH_origen);
 	pos+=ETH_ALEN*sizeof(uint8_t);
 
