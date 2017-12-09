@@ -39,6 +39,8 @@ int main(int argc, char **argv){
 	char data[IP_DATAGRAM_MAX];
 	uint16_t pila_protocolos[CADENAS];
 	FILE * f = NULL;
+	uint64_t fsize = 0;
+	char * auxdata = NULL;
 
 	int long_index=0;
 	char opt;
@@ -98,14 +100,36 @@ int main(int argc, char **argv){
 						printf("ERROR: El fichero %s no existe.\n", optarg);
 						return ERROR;
 					}
-					while(!feof(f)){
-						if ((fgets(data, sizeof data, f)==NULL) && strlen(data) < 1){
-							  	printf("Error leyendo desde fichero %s: %s %s %d.\n",optarg,errbuf,__FILE__,__LINE__);
+					/*Miramos si esta vacío. si no nos olvidaremos de lo que hemos leido en este fgets*/
+					if (fgets(data, sizeof data, f)==NULL && strlen(data) < 1){
+								printf("Error leyendo desde fichero %s: %s %s %d.\n",optarg,errbuf,__FILE__,__LINE__);
+								fclose(f);
 							return ERROR;
-						}
 					}
-					printf("%s\n", data);
+					/*Movemos el stream al final del fichero para ver su tamaño*/
+					fseek(f, 0, SEEK_END);
+					fsize = ftell(f);
+					/*Si el tamaño es mayor que el permitido en el datagrama no podremos enviarlo*/
+					/*hay que dejar un espacio para final de carrera*/
+					if(fsize >= IP_DATAGRAM_MAX){
+							printf("Error leyendo desde fichero %s: %s %s %d.\n",optarg,errbuf,__FILE__,__LINE__);
+							printf("Supera el máximo tamaño de datagrama.\n");
+							fclose(f);
+						return ERROR;
+					}
+					/*Si no, ponemos el stream al inicio de fichero*/
+					fseek(f, 0, SEEK_SET);
+					/*Y leemos*/
+					auxdata = (char *)malloc((fsize + 1) * sizeof(char));
+					fread(auxdata, fsize, 1, f);
+					auxdata[fsize] = 0;
 					fclose(f);
+
+					strcpy(data, auxdata);
+
+					free(auxdata);
+
+					
 				}
 				flag_file = 1;
 
