@@ -364,7 +364,7 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 	if(aplicarMascara(IP_destino, mascara, IP_ALEN, IP_rango_destino) == ERROR)
 		return ERROR;
 
-	if((IP_rango_origen[1] == IP_rango_destino[1]) && (IP_rango_origen[2] == IP_rango_destino[2]) && (IP_rango_origen[3] == IP_rango_destino[3]) && (IP_rango_origen[4] == IP_rango_destino[4])){
+	if((IP_rango_origen[0] == IP_rango_destino[0]) && (IP_rango_origen[1] == IP_rango_destino[1]) && (IP_rango_origen[2] == IP_rango_destino[2]) && (IP_rango_origen[3] == IP_rango_destino[3])){
 				/*ARP REQUEST*/
 		printf("El destino está en la misma subred que el origen\n");
 
