@@ -94,6 +94,10 @@ int main(int argc, char **argv){
 				} else {
 					sprintf(fichero_pcap_destino,"%s%s",optarg,".pcap");
 					f = fopen(optarg, "r");
+					if(f == NULL){
+						printf("ERROR: El fichero %s no existe.\n", optarg);
+						return ERROR;
+					}
 					while(!feof(f)){
 						if ((fgets(data, sizeof data, f)==NULL) && strlen(data) < 1){
 							  	printf("Error leyendo desde fichero %s: %s %s %d.\n",optarg,errbuf,__FILE__,__LINE__);
