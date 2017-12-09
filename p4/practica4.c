@@ -113,7 +113,7 @@ int main(int argc, char **argv){
 					/*hay que dejar un espacio para final de carrera*/
 					if(fsize >= IP_DATAGRAM_MAX){
 							printf("Error leyendo desde fichero %s: %s %s %d.\n",optarg,errbuf,__FILE__,__LINE__);
-							printf("Supera el máximo tamaño de datagrama.\n");
+							printf("Supera el máximo tamaño de datagrama de UDP.\n");
 							fclose(f);
 						return ERROR;
 					}
