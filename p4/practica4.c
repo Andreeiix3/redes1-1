@@ -326,7 +326,6 @@ uint8_t moduloUDP(uint8_t* mensaje,uint64_t longitud, uint16_t* pila_protocolos,
 	memcpy(segmento+pos,&suma_control,sizeof(uint16_t));
 	pos+=sizeof(uint16_t);
 
-	/*ESTO DE AQUI ABAJO ESTA TREMENDAMENTE MAL*/
 	/*Copia de todo el segmento, el mensaje*/
 
 
@@ -365,7 +364,7 @@ uint8_t moduloIP(uint8_t* segmento, uint64_t longitud, uint16_t* pila_protocolos
 	uint8_t mascara[IP_ALEN],IP_rango_origen[IP_ALEN],IP_rango_destino[IP_ALEN];
 	Parametros ipdatos=*((Parametros*)parametros);
 	uint8_t* IP_destino = ipdatos.IP_destino;
-	uint8_t IP_tipo=ipdatos.tipo;
+	uint8_t IP_tipo=0;
 	int numpack;
 	int i;
 	uint8_t* gateWay;
